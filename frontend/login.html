@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Soliha Store - Admin Kirish</title>
+    <link rel="stylesheet" href="/css/style.css?v=2">
+    <style>
+        .login-container {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            padding: 1.5rem;
+        }
+        .login-card {
+            background: white;
+            padding: 3rem 2rem;
+            border-radius: var(--radius-lg);
+            box-shadow: var(--soft-shadow);
+            border: 1px solid var(--glass-border);
+            width: 100%;
+            max-width: 400px;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="login-container">
+        <div class="login-card">
+            <div style="font-size: 4rem; margin-bottom: 1rem;">🔑</div>
+            <h1 style="font-weight: 700; margin-bottom: 0.5rem; color: var(--text-dark);">Admin Panel</h1>
+            <p style="color: var(--text-light); margin-bottom: 2rem;">Soliha do'koni boshqaruv tizimi</p>
+            
+            <form id="loginForm">
+                <div class="form-group" style="padding: 0; margin-bottom: 1.5rem; text-align: left;">
+                    <label for="adminPass">Kirish Paroli:</label>
+                    <input type="password" id="adminPass" required placeholder="Parolni kiriting">
+                </div>
+                <button type="submit" class="btn-primary" style="width: 100%; padding: 1rem;">Tizimga Kirish ✨</button>
+            </form>
+            <div id="loginError" style="margin-top: 1rem; color: var(--primary-pink); font-weight: 600; display: none;">
+                Noto'g'ri parol kiritildi!
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="/js/config.js"></script>
+    <script>
+        document.getElementById("loginForm").addEventListener("submit", (e) => {
+            e.preventDefault();
+            const password = document.getElementById("adminPass").value;
+            const errorDiv = document.getElementById("loginError");
+            errorDiv.style.display = "none";
+            
+            if (password === ADMIN_PASSWORD) {
+                // Save login state in localstorage
+                localStorage.setItem("admin_logged_in", "true");
+                localStorage.setItem("admin_token", password); // back-compatibility
+                window.location.href = "/admin.html";
+            } else {
+                errorDiv.style.display = "block";
+            }
+        });
+    </script>
+</body>
+</html>

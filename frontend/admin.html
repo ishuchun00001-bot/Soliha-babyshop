@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Soliha - Admin Panel</title>
+    <link rel="stylesheet" href="/css/style.css?v=2">
+    <!-- Supabase JS Client CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        .hidden-tab {
+            display: none !important;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="admin-container">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <div class="logo-container">
+                <span class="logo-text">Soliha <span class="logo-subtext">Admin</span> 👗🍼</span>
+            </div>
+            <ul class="sidebar-menu">
+                <li><a class="sidebar-link active" data-tab="tab-dashboard">📊 Dashboard</a></li>
+                <li><a class="sidebar-link" data-tab="tab-products">🛍️ Mahsulotlar</a></li>
+                <li><a class="sidebar-link" data-tab="tab-categories">📂 Kategoriyalar</a></li>
+                <li><a class="sidebar-link" data-tab="tab-orders">📦 Buyurtmalar</a></li>
+            </ul>
+            <button class="btn-secondary" id="logoutBtn" style="margin-top: auto; width: 100%;">Tizimdan chiqish</button>
+        </aside>
+
+        <!-- Main Content Area -->
+        <main class="admin-main">
+            
+            <!-- 1. DASHBOARD TAB -->
+            <section id="tab-dashboard" class="tab-content">
+                <h1 style="margin-bottom: 2rem; font-weight: 700;">Dashboard 📊</h1>
+                
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-icon">💰</div>
+                        <div>
+                            <div class="stat-value" id="statSales">0 so'm</div>
+                            <div class="stat-label">Jami Savdo (bekor qilinmagan)</div>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon blue">📦</div>
+                        <div>
+                            <div class="stat-value" id="statOrders">0</div>
+                            <div class="stat-label">Jami Buyurtmalar</div>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon">🔔</div>
+                        <div>
+                            <div class="stat-value" id="statPending" style="color: var(--primary-pink);">0</div>
+                            <div class="stat-label">Yangi Buyurtmalar</div>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon blue">🍼</div>
+                        <div>
+                            <div class="stat-value" id="statProducts">0</div>
+                            <div class="stat-label">Faol Mahsulotlar</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="admin-card">
+                    <h2 class="admin-card-title" style="margin-bottom: 1rem;">Soliha Admin Boshqaruv Paneliga Xush Kelibsiz!</h2>
+                    <p style="color: var(--text-light); margin-bottom: 1rem; line-height: 1.6;">
+                        Ushbu panel to'g'ridan-to'g'ri **Supabase** bulutli bazasiga bog'langan va server talab qilmaydi.
+                    </p>
+                    <ul style="color: var(--text-light); margin-left: 1.5rem; line-height: 1.8;">
+                        <li>Yangi toifalar qo'shishingiz va mahsulotlar ro'yxatini tahrirlashingiz mumkin.</li>
+                        <li>Eng asosiysi: yangi mahsulotlarni **Telegram Botga rasm va captionda narxini yozib yuborish** orqali osongina qo'shishingiz mumkin. Ular bu yerda va veb-saytda bir zumda aks etadi!</li>
+                        <li>Mijozlar bergan buyurtmalar bu yerda paydo bo'ladi, ularni batafsil ko'rishingiz va statuslarini (Yangi, Qabul qilindi, Yetkazilmoqda, Yakunlandi, Bekor qilindi) o'zgartirishingiz mumkin.</li>
+                    </ul>
+                </div>
+            </section>
+
+            <!-- 2. PRODUCTS TAB -->
+            <section id="tab-products" class="tab-content hidden-tab">
+                <div class="admin-card-header" style="margin-bottom: 2rem;">
+                    <h1 style="font-weight: 700;">Mahsulotlar Boshqaruvi 🛍️</h1>
+                    <button class="btn-primary" id="openProductModalBtn">+ Yangi Mahsulot Qo'shish</button>
+                </div>
+
+                <div class="admin-card">
+                    <div class="admin-table-wrapper">
+                        <table class="admin-table">
+                            <thead>
+                                <tr>
+                                    <th>Rasm</th>
+                                    <th>Nomi</th>
+                                    <th>Kategoriya</th>
+                                    <th>Narxi</th>
+                                    <th>O'lchamlari</th>
+                                    <th>Qoldiq</th>
+                                    <th>Amallar</th>
+                                </tr>
+                            </thead>
+                            <tbody id="productsTableBody">
+                                <!-- Dynamically populated -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 3. CATEGORIES TAB -->
+            <section id="tab-categories" class="tab-content hidden-tab">
+                <h1 style="margin-bottom: 2rem; font-weight: 700;">Kategoriyalar Boshqaruvi 📂</h1>
+
+                <div class="admin-card" style="max-width: 600px; margin-bottom: 2rem;">
+                    <h2 class="admin-card-title" style="margin-bottom: 1rem;">Yangi Kategoriya Qo'shish</h2>
+                    <form id="addCategoryForm" style="display: flex; gap: 1rem;">
+                        <input type="text" id="newCatName" required placeholder="Masalan: Ayollar Kiyimlari" style="flex-grow: 1; padding: 0.8rem; border-radius: var(--radius-md); border: 1px solid #CBD5E1;">
+                        <button type="submit" class="btn-primary">Qo'shish</button>
+                    </form>
+                </div>
+
+                <div class="admin-card" style="max-width: 600px;">
+                    <h2 class="admin-card-title" style="margin-bottom: 1.5rem;">Mavjud Kategoriyalar</h2>
+                    <div class="admin-table-wrapper">
+                        <table class="admin-table">
+                            <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>Kategoriya Nomi</th>
+                                    <th>Amallar</th>
+                                </tr>
+                            </thead>
+                            <tbody id="categoriesTableBody">
+                                <!-- Dynamically populated -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 4. ORDERS TAB -->
+            <section id="tab-orders" class="tab-content hidden-tab">
+                <h1 style="margin-bottom: 2rem; font-weight: 700;">Buyurtmalar Boshqaruvi 📦</h1>
+
+                <div class="admin-card">
+                    <div class="admin-table-wrapper">
+                        <table class="admin-table">
+                            <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>Sana</th>
+                                    <th>Xaridor</th>
+                                    <th>Telefon</th>
+                                    <th>Turi</th>
+                                    <th>Summa</th>
+                                    <th>Holati</th>
+                                    <th>Amallar</th>
+                                </tr>
+                            </thead>
+                            <tbody id="ordersTableBody">
+                                <!-- Dynamically populated -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+
+        </main>
+    </div>
+
+    <!-- Product Creation/Edit Modal -->
+    <div class="modal" id="productModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 class="modal-title" id="productModalTitle">Yangi Mahsulot Qo'shish 👗🍼</h2>
+                <button class="close-drawer" id="closeProductModal" style="color: white; font-size: 2rem;">&times;</button>
+            </div>
+            <form id="productForm" enctype="multipart/form-data">
+                <div class="form-group">
+                    <label for="prodName">Mahsulot Nomi:</label>
+                    <input type="text" id="prodName" required placeholder="Masalan: Nafis gulli ko'ylak">
+                </div>
+                <div class="form-group">
+                    <label for="prodDesc">Tavsif (Tafsilotlar):</label>
+                    <textarea id="prodDesc" placeholder="Mahsulot haqida ma'lumot..." rows="3"></textarea>
+                </div>
+                <div class="form-group">
+                    <label for="prodCategory">Kategoriya:</label>
+                    <select id="prodCategory" required>
+                        <!-- Dynamically populated -->
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="prodPrice">Narxi (so'mda):</label>
+                    <input type="number" id="prodPrice" required placeholder="Masalan: 85000">
+                </div>
+                <div class="form-group">
+                    <label for="prodSizes">O'lchamlar (vergul bilan ajrating):</label>
+                    <input type="text" id="prodSizes" placeholder="Masalan: M, L, XL yoki 0-3 oy">
+                </div>
+                <div class="form-group">
+                    <label for="prodStock">Ombordagi Soni (dona):</label>
+                    <input type="number" id="prodStock" value="10" required>
+                </div>
+                <div class="form-group">
+                    <label for="prodImage">Mahsulot Rasmi:</label>
+                    <input type="file" id="prodImage" accept="image/*" required>
+                </div>
+                <div class="form-actions">
+                    <button type="button" class="btn-secondary" id="cancelProductBtn">Bekor qilish</button>
+                    <button type="submit" class="btn-primary" id="saveProductBtn">Saqlash ✨</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Order Items Detail Modal -->
+    <div class="modal" id="orderDetailModal">
+        <div class="modal-content" style="max-width: 600px;">
+            <div class="modal-header">
+                <h2 class="modal-title">Buyurtma Tafsilotlari 📦</h2>
+                <button class="close-drawer" id="closeOrderDetail" style="color: white; font-size: 2rem;">&times;</button>
+            </div>
+            <div style="padding: 1.5rem;">
+                <div style="margin-bottom: 1.5rem; border-bottom: 1px solid #E2E8F0; padding-bottom: 1rem;">
+                    <p><strong>Xaridor:</strong> <span id="detailCustName"></span></p>
+                    <p><strong>Telefon:</strong> <span id="detailCustPhone"></span></p>
+                    <p><strong>Manzil:</strong> <span id="detailCustAddress"></span></p>
+                    <p><strong>Turi:</strong> <span id="detailDeliveryMethod"></span></p>
+                    <p><strong>Sana:</strong> <span id="detailDate"></span></p>
+                </div>
+                <h3 style="margin-bottom: 0.8rem; font-weight: 600;">Sotib olingan mahsulotlar:</h3>
+                <div class="admin-table-wrapper" style="margin-bottom: 1rem;">
+                    <table class="admin-table">
+                        <thead>
+                            <tr>
+                                <th>Mahsulot</th>
+                                <th>Razmer</th>
+                                <th>Soni</th>
+                                <th>Narxi</th>
+                                <th>Jami</th>
+                            </tr>
+                        </thead>
+                        <tbody id="detailItemsBody">
+                            <!-- Dynamically populated -->
+                        </tbody>
+                    </table>
+                </div>
+                <div style="display: flex; justify-content: space-between; font-weight: bold; font-size: 1.2rem;">
+                    <span>Jami:</span>
+                    <span id="detailTotal"></span>
+                </div>
+            </div>
+            <div class="form-actions">
+                <button class="btn-secondary" id="closeOrderDetailBtn">Yopish</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="/js/config.js"></script>
+    <script src="/js/admin.js"></script>
+</body>
+</html>

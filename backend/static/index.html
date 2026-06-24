@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Soliha - Ayollar va Bolalar Kiyimlari Do'koni</title>
+    <meta name="description" content="Eng zamonaviy ayollar kiyimlari, sifatli bolalar kiyim-kechaklari va aksessuarlari Soliha do'konida!">
+    <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+
+    <!-- Drawer Overlay -->
+    <div class="drawer-overlay" id="drawerOverlay"></div>
+
+    <!-- Header -->
+    <header>
+        <div class="logo-container">
+            <span class="logo-text">Soliha <span class="logo-subtext">Style & Kids</span> 👗🍼</span>
+        </div>
+        <div class="cart-icon-container" id="cartTrigger">
+            <span>🛒 Savatcha</span>
+            <div class="cart-badge" id="cartBadge">0</div>
+        </div>
+    </header>
+
+    <!-- Hero Section -->
+    <section class="hero">
+        <h1>Ayollar va Bolalar uchun <span>Sifatli Kiyimlar</span></h1>
+        <p>Soliha do'konidan o'zingiz va farzandlaringiz uchun eng sara kiyimlarni tanlang</p>
+    </section>
+
+    <!-- Search Section -->
+    <div class="search-container">
+        <div class="search-wrapper">
+            <input type="text" class="search-input" id="searchInput" placeholder="Mahsulotlarni qidirish...">
+        </div>
+    </div>
+
+    <!-- Categories Tab Scroller -->
+    <div class="categories-container" id="categoriesContainer">
+        <!-- Dynamically populated -->
+        <button class="category-tab active" data-id="all">Hammasi ✨</button>
+    </div>
+
+    <!-- Products Grid -->
+    <main class="products-section">
+        <div class="products-grid" id="productsGrid">
+            <!-- Dynamically populated -->
+            <div style="grid-column: 1/-1; text-align: center; color: var(--text-light); padding: 3rem;">
+                Mahsulotlar yuklanmoqda... 🍼
+            </div>
+        </div>
+    </main>
+
+    <!-- Cart Drawer -->
+    <div class="cart-drawer" id="cartDrawer">
+        <div class="cart-drawer-header">
+            <h2 class="cart-drawer-title">Savatchangiz 🛒</h2>
+            <button class="close-drawer" id="closeCart">&times;</button>
+        </div>
+        <div class="cart-drawer-body" id="cartItemsContainer">
+            <!-- Dynamically populated -->
+        </div>
+        <div class="cart-drawer-footer">
+            <div class="total-summary">
+                <span>Jami summa:</span>
+                <span id="cartTotal">0 so'm</span>
+            </div>
+            <button class="checkout-btn" id="checkoutBtn">Buyurtma Berish ✨</button>
+        </div>
+    </div>
+
+    <!-- Checkout Modal -->
+    <div class="modal" id="checkoutModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 class="modal-title">Buyurtmani Rasmiylashtirish 📝</h2>
+                <button class="close-drawer" id="closeCheckout" style="color: white; font-size: 2rem;">&times;</button>
+            </div>
+            <form id="checkoutForm">
+                <div class="form-group">
+                    <label for="custName">Ismingiz:</label>
+                    <input type="text" id="custName" required placeholder="Masalan: Madiyor">
+                </div>
+                <div class="form-group">
+                    <label for="custPhone">Telefon raqamingiz:</label>
+                    <input type="tel" id="custPhone" required value="+998" placeholder="+998 90 123 45 67">
+                </div>
+                <div class="form-group">
+                    <label for="custAddress">Manzil yoki O'zim Olib ketish:</label>
+                    <input type="text" id="custAddress" required placeholder="Masalan: Toshkent sh., Chilonzor 9-daha 12-uy">
+                </div>
+                <div class="form-group">
+                    <label for="deliveryMethod">Yetkazib berish turi:</label>
+                    <select id="deliveryMethod">
+                        <option value="delivery">Yetkazib berish (Dostavka)</option>
+                        <option value="pickup">O'zim olib ketaman (Samovivoz)</option>
+                    </select>
+                </div>
+                <div class="form-actions">
+                    <button type="button" class="btn-secondary" id="cancelCheckout">Orqaga</button>
+                    <button type="submit" class="btn-primary">Tasdiqlash ✨</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Success Modal -->
+    <div class="modal" id="successModal">
+        <div class="modal-content" style="text-align: center; padding: 2.5rem;">
+            <div style="font-size: 5rem; margin-bottom: 1rem;">🎉</div>
+            <h2 style="font-weight: 700; color: var(--primary-pink); margin-bottom: 0.5rem;">Buyurtma Qabul Qilindi!</h2>
+            <p style="color: var(--text-light); margin-bottom: 2rem; font-size: 1.1rem;">Rahmat! Buyurtmangiz muvaffaqiyatli rasmiylashtirildi. Tez orada adminlarimiz aloqaga chiqishadi.</p>
+            <button class="btn-primary" id="successClose" style="width: 100%;">Tushunarli</button>
+        </div>
+    </div>
+
+    <script src="/static/js/app.js"></script>
+</body>
+</html>

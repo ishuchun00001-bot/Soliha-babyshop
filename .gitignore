@@ -1,0 +1,22 @@
+# Ignore environment variables and secrets
+.env
+backend/.env
+
+# Ignore SQLite databases
+*.db
+backend/database.db
+
+# Ignore Python cache and compilation files
+__pycache__/
+**/__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.pytest_cache/
+.venv/
+venv/
+env/
+
+# Ignore uploads directory if any local uploads exist
+backend/static/uploads/*
+!backend/static/uploads/.gitkeep
