@@ -40,7 +40,7 @@ async def lifespan(app: FastAPI):
     await bot.delete_webhook(drop_pending_updates=True)
     polling_task = asyncio.create_task(dp.start_polling(bot))
     
-    # 3. Startup: Start Channel Post Scheduler (every 15 minutes)
+    # 3. Startup: Start Channel Post Scheduler (daily)
     from backend.app.bot import post_random_product_to_channel
     async def channel_post_scheduler():
         logger.info("Channel posting scheduler started (waiting 30 seconds before first run)...")
@@ -51,7 +51,7 @@ async def lifespan(app: FastAPI):
                 await post_random_product_to_channel()
             except Exception as ex:
                 logger.error(f"Error in channel scheduler: {ex}")
-            await asyncio.sleep(900) # 900 seconds = 15 minutes
+            await asyncio.sleep(86400) # 86400 seconds = 24 hours (1 day)
             
     scheduler_task = asyncio.create_task(channel_post_scheduler())
     
@@ -130,23 +130,26 @@ async def lifespan(app: FastAPI):
                 from backend.app.supabase_helper import get_pending_scheduled_videos, mark_video_as_posted
                 from backend.app.bot import bot, TELEGRAM_CHANNEL_ID
                 
-                if TELEGRAM_CHANNEL_ID:
-                    pending_videos = get_pending_scheduled_videos()
-                    for video in pending_videos:
-                        video_id = video["id"]
-                        file_id = video["video_url"]
-                        desc = video.get("caption") or ""
-                        tags = video.get("hashtags") or ""
+                pending_videos = get_pending_scheduled_videos()
+                for video in pending_videos:
+                    video_id = video["id"]
+                    file_id = video["video_url"]
+                    instagram_url = video.get("instagram_video_url")
+                    desc = video.get("caption") or ""
+                    tags = video.get("hashtags") or ""
+                    
+                    caption_text = ""
+                    if desc and tags:
+                        caption_text = f"{desc}\n\n{tags}"
+                    elif desc:
+                        caption_text = desc
+                    elif tags:
+                        caption_text = tags
                         
-                        caption_text = ""
-                        if desc and tags:
-                            caption_text = f"{desc}\n\n{tags}"
-                        elif desc:
-                            caption_text = desc
-                        elif tags:
-                            caption_text = tags
-                            
-                        logger.info(f"Posting scheduled video #{video_id} to channel...")
+                    # 1. Post to Telegram Channel
+                    telegram_success = False
+                    if TELEGRAM_CHANNEL_ID:
+                        logger.info(f"Posting scheduled video #{video_id} to Telegram channel...")
                         try:
                             await bot.send_video(
                                 chat_id=TELEGRAM_CHANNEL_ID,
@@ -154,13 +157,35 @@ async def lifespan(app: FastAPI):
                                 caption=caption_text,
                                 parse_mode="HTML"
                             )
-                            mark_video_as_posted(video_id)
-                            logger.info(f"Scheduled video #{video_id} posted and marked as completed.")
+                            logger.info(f"Scheduled video #{video_id} successfully posted to Telegram channel.")
+                            telegram_success = True
                         except Exception as post_ex:
-                            logger.error(f"Failed to post scheduled video #{video_id}: {post_ex}")
+                            logger.error(f"Failed to post scheduled video #{video_id} to Telegram: {post_ex}")
+                    
+                    # 2. Post to Instagram Reels (if public URL is available)
+                    instagram_success = False
+                    if instagram_url:
+                        logger.info(f"Publishing scheduled video #{video_id} to Instagram Reels...")
+                        from backend.app.instagram_helper import publish_instagram_reel
+                        try:
+                            insta_res = await publish_instagram_reel(instagram_url, caption_text)
+                            if insta_res:
+                                logger.info(f"Scheduled video #{video_id} successfully published to Instagram Reels.")
+                                instagram_success = True
+                            else:
+                                logger.error(f"Failed to publish scheduled video #{video_id} to Instagram Reels.")
+                        except Exception as insta_ex:
+                            logger.error(f"Error publishing scheduled video #{video_id} to Instagram: {insta_ex}")
+                    
+                    # Mark as posted if it was successfully sent to at least one platform (typically Telegram)
+                    # to prevent duplicate triggers.
+                    if telegram_success or instagram_success:
+                        mark_video_as_posted(video_id)
+                        logger.info(f"Scheduled video #{video_id} marked as completed in database.")
             except Exception as e:
                 logger.error(f"Error in scheduled video poll task (if 'scheduled_videos' table is missing, please add it): {e}")
             await asyncio.sleep(60) # Check every 60 seconds
+
 
     video_posting_task = asyncio.create_task(scheduled_video_poll_task())
     
