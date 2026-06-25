@@ -212,7 +212,7 @@ export default function Storefront() {
             {/* Header */}
             <header>
                 <div className="logo-container">
-                    <span className="logo-text">Soliha <span className="logo-subtext">Boutique</span> 👗🍼</span>
+                    <span className="logo-text">Soliha <span className="logo-subtext">baby shop</span></span>
                 </div>
                 
                 <div className="header-right">
@@ -291,11 +291,11 @@ export default function Storefront() {
                 {loading ? (
                     <div style={{ textAlign: 'center', padding: '5rem 0' }}>
                         <div className="loading-spinner"></div>
-                        <p style={{ marginTop: '1rem', fontWeight: 500, color: 'var(--text-muted)' }}>Nafis kiyimlar yuklanmoqda... 👗🍼</p>
+                        <p style={{ marginTop: '1rem', fontWeight: 500, color: 'var(--text-muted)' }}>Nafis kiyimlar yuklanmoqda...</p>
                     </div>
                 ) : filteredProducts.length === 0 ? (
                     <div style={{ textAlign: 'center', padding: '5rem 0', color: 'var(--text-muted)' }}>
-                        <p style={{ fontSize: '1.2rem', fontWeight: 500 }}>Hech qanday mahsulot topilmadi 🧸</p>
+                        <p style={{ fontSize: '1.2rem', fontWeight: 500 }}>Hech qanday mahsulot topilmadi</p>
                     </div>
                 ) : (
                     <motion.div 
@@ -335,7 +335,7 @@ export default function Storefront() {
                                             >
                                                 {prod.name}
                                             </h3>
-                                            <p className="product-desc">{prod.description || 'Soliha boutique kiyimi'}</p>
+                                            <p className="product-desc">{prod.description || 'Soliha baby shop kiyimi'}</p>
                                             <div className="product-meta">
                                                 <span className="product-price">{formatPrice(prod.price)} so'm</span>
                                                 {sizesList.length > 0 && (
@@ -386,7 +386,7 @@ export default function Storefront() {
             <footer>
                 <div className="footer-grid">
                     <div className="footer-brand">
-                        <h3>{SHOP_INFO.name} 👗🍼</h3>
+                        <h3>{SHOP_INFO.name}</h3>
                         <p>Ayollar va bolalar kiyimlarining eng nafis to'plami. Sifat biz uchun eng birinchi o'rinda.</p>
                     </div>
                     <div className="footer-contacts">

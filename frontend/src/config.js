@@ -5,7 +5,7 @@ export const SUPABASE_BUCKET = "products";
 export const ADMIN_PASSWORD = "admin123";
 export const SHOP_INFO = {
     name: "Soliha Baby Shop",
-    logo: "Soliha Style & Kids",
+    logo: "Soliha baby shop",
     phone1: "+998 93 067 18 88",
     phone2: "+998 97 320 06 68",
     address: "Zarafshon shahri, 11-44 avtobus bekatida",

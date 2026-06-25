@@ -222,7 +222,7 @@ export default function AdminPanel({ onLogout }) {
             {/* Sidebar */}
             <aside className="sidebar">
                 <div className="logo-container">
-                    <span className="logo-text">Soliha <span className="logo-subtext">Admin</span> 🔐</span>
+                    <span className="logo-text">Soliha <span className="logo-subtext">Admin</span></span>
                 </div>
                 <ul className="sidebar-menu">
                     <li>
@@ -542,7 +542,7 @@ export default function AdminPanel({ onLogout }) {
                 <div className="modal open">
                     <div className="modal-content" style={{ maxWidth: '550px' }}>
                         <div className="modal-header">
-                            <h2 className="modal-title">Yangi Mahsulot Qo'shish 👗🍼</h2>
+                            <h2 className="modal-title">Yangi Mahsulot Qo'shish</h2>
                             <button className="close-drawer" onClick={() => setIsProductModalOpen(false)}>&times;</button>
                         </div>
                         <form onSubmit={handleProductFormSubmit} style={{ padding: '2rem' }}>
