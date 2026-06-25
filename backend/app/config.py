@@ -24,4 +24,4 @@ SUPABASE_BUCKET = os.getenv("SUPABASE_BUCKET", "products")
 BASE_DIR = Path(__file__).resolve().parent.parent
 UPLOAD_DIR = BASE_DIR / "static" / "uploads"
 UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
-STATIC_DIR = BASE_DIR.parent / "frontend"
+STATIC_DIR = BASE_DIR.parent / "frontend" / "dist"

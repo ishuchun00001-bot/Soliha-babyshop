@@ -149,16 +149,16 @@ def read_root():
 
 @app.get("/admin")
 def read_admin():
-    admin_file = STATIC_DIR / "admin.html"
-    if admin_file.exists():
-        return FileResponse(admin_file)
+    index_file = STATIC_DIR / "index.html"
+    if index_file.exists():
+        return FileResponse(index_file)
     return {"message": "Admin panel sahifasi topilmadi."}
 
 @app.get("/login")
 def read_login():
-    login_file = STATIC_DIR / "login.html"
-    if login_file.exists():
-        return FileResponse(login_file)
+    index_file = STATIC_DIR / "index.html"
+    if index_file.exists():
+        return FileResponse(index_file)
     return {"message": "Login sahifasi topilmadi."}
 
 # --- API Endpoints ---

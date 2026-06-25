@@ -1,12 +1,8 @@
 /* -------------------------------------------------------------
-   Soliha Boutique - Premium Design System
-   Aesthetic: Warm Cream, Rose Gold, Soft Terracotta, Charcoal
-   Typography: Playfair Display (Serif) & Outfit (Sans-Serif)
+   Soliha Baby Shop - Unified Premium Styling System
    ------------------------------------------------------------- */
 
-/* Google Fonts Import */
-@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=Playfair+Display:ital,wght@0,400..900;1,400..900&display=swap');
-
+/* Variables */
 :root {
     /* Color Palette */
     --primary-rose: #E5A99C;
@@ -20,7 +16,7 @@
     /* Functional Colors */
     --text-dark: #1A2326;
     --text-muted: #5C676D;
-    --glass-bg: rgba(255, 255, 255, 0.7);
+    --glass-bg: rgba(255, 255, 255, 0.75);
     --glass-border: rgba(255, 255, 255, 0.5);
     --success: #6E9E89;
     --danger: #D36868;
@@ -968,38 +964,252 @@ footer {
     to { transform: rotate(360deg); }
 }
 
-/* Responsive adjustments */
-@media (max-width: 768px) {
-    header {
-        padding: 1rem 1.5rem;
+/* -------------------------------------------------------------
+   Admin Panel Layout
+   ------------------------------------------------------------- */
+.admin-container {
+    display: flex;
+    min-height: 100vh;
+}
+
+.sidebar {
+    width: 280px;
+    background: var(--primary-charcoal);
+    color: var(--bg-cream);
+    display: flex;
+    flex-direction: column;
+    padding: 2.5rem 1.8rem;
+    position: fixed;
+    height: 100vh;
+    border-right: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.sidebar .logo-container {
+    margin-bottom: 3.5rem;
+}
+
+.sidebar .logo-text {
+    color: var(--bg-cream);
+}
+
+.sidebar-menu {
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 0.8rem;
+}
+
+.sidebar-link {
+    color: rgba(250, 246, 240, 0.65);
+    text-decoration: none;
+    padding: 0.9rem 1.2rem;
+    border-radius: var(--radius-sm);
+    display: flex;
+    align-items: center;
+    gap: 0.8rem;
+    font-weight: 500;
+    transition: var(--transition);
+    cursor: pointer;
+}
+
+.sidebar-link:hover, .sidebar-link.active {
+    color: white;
+    background: rgba(255, 255, 255, 0.08);
+}
+
+.admin-main {
+    margin-left: 280px;
+    flex-grow: 1;
+    padding: 3rem;
+    background: var(--bg-cream);
+}
+
+.admin-card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 2.5rem;
+}
+
+.admin-card {
+    background: white;
+    border-radius: var(--radius-md);
+    padding: 2.5rem;
+    box-shadow: var(--soft-shadow);
+    border: 1px solid var(--glass-border);
+    margin-bottom: 2.5rem;
+}
+
+.admin-card-title {
+    font-family: 'Playfair Display', serif;
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--primary-charcoal);
+    margin-bottom: 1.5rem;
+}
+
+/* Stats Cards */
+.stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 2rem;
+    margin-bottom: 2.5rem;
+}
+
+.stat-card {
+    background: white;
+    border-radius: var(--radius-md);
+    padding: 1.8rem;
+    box-shadow: var(--soft-shadow);
+    border: 1px solid var(--glass-border);
+    display: flex;
+    align-items: center;
+    gap: 1.2rem;
+}
+
+.stat-icon {
+    font-size: 2rem;
+    width: 60px;
+    height: 60px;
+    border-radius: var(--radius-sm);
+    background: var(--primary-rose-light);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--accent-terracotta);
+}
+
+.stat-icon.blue {
+    background: #EAF6F8;
+    color: #48A6BD;
+}
+
+.stat-value {
+    font-size: 1.6rem;
+    font-weight: 800;
+    color: var(--primary-charcoal);
+    margin-bottom: 0.1rem;
+}
+
+.stat-label {
+    font-size: 0.85rem;
+    color: var(--text-muted);
+    font-weight: 500;
+}
+
+/* Admin Tables */
+.admin-table-wrapper {
+    overflow-x: auto;
+}
+
+.admin-table {
+    width: 100%;
+    border-collapse: collapse;
+    text-align: left;
+    font-size: 0.95rem;
+}
+
+.admin-table th {
+    padding: 1rem 1.2rem;
+    background: var(--bg-cream);
+    color: var(--text-dark);
+    font-weight: 600;
+    border-bottom: 2px solid rgba(0,0,0,0.05);
+}
+
+.admin-table td {
+    padding: 1.2rem;
+    border-bottom: 1px solid rgba(0,0,0,0.05);
+    color: var(--text-dark);
+    vertical-align: middle;
+}
+
+.admin-table tr:hover {
+    background: rgba(250, 246, 240, 0.4);
+}
+
+.status-badge {
+    padding: 0.35rem 0.8rem;
+    border-radius: 50px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    display: inline-block;
+}
+
+.status-yangi {
+    background: #FFF9E6;
+    color: #D4AF37;
+}
+
+.status-qabul {
+    background: #EEF8F4;
+    color: #6E9E89;
+}
+
+.status-yetkazilmoqda {
+    background: #EAF6F8;
+    color: #48A6BD;
+}
+
+.status-yakunlandi {
+    background: #EEF8F4;
+    color: #6E9E89;
+    border: 1px solid #6E9E89;
+}
+
+.status-bekor {
+    background: #FDF2F2;
+    color: var(--danger);
+}
+
+/* Login screen styling */
+.login-container {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+    padding: 1.5rem;
+    background: var(--bg-cream);
+    position: relative;
+    z-index: 1;
+}
+
+.login-card {
+    background: white;
+    padding: 3.5rem 2.5rem;
+    border-radius: var(--radius-lg);
+    box-shadow: var(--soft-shadow);
+    border: 1px solid var(--glass-border);
+    width: 100%;
+    max-width: 420px;
+    text-align: center;
+}
+
+/* Tab contents conditional rendering helper */
+.hidden-tab {
+    display: none !important;
+}
+
+/* Mobile Admin View */
+@media (max-width: 992px) {
+    .sidebar {
+        width: 70px;
+        padding: 2rem 0.5rem;
+        align-items: center;
     }
-    .hero {
-        padding: 3rem 1rem 2rem 1rem;
+    .sidebar .logo-container, .sidebar-link span {
+        display: none !important;
     }
-    .hero h1 {
-        font-size: 2.3rem;
+    .admin-main {
+        margin-left: 70px;
+        padding: 1.5rem;
     }
-    .hero p {
-        font-size: 1rem;
+    .admin-card-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 1rem;
     }
-    .categories-container {
-        justify-content: flex-start;
-        padding-left: 1.5rem;
-        padding-right: 1.5rem;
-    }
-    .products-section {
-        padding: 0 1.2rem 4rem 1.2rem;
-    }
-    .products-grid {
-        gap: 1.8rem;
-    }
-    .logo-text {
-        font-size: 1.4rem;
-    }
-    .cart-label {
-        display: none;
-    }
-    .cart-icon-container {
-        padding: 0.6rem 0.9rem;
+    .admin-card {
+        padding: 1.5rem;
     }
 }
