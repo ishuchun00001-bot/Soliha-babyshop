@@ -94,6 +94,33 @@ async def lifespan(app: FastAPI):
 
     notification_task = asyncio.create_task(customer_notification_poll_task())
     
+    # 3.6 Startup: Start admin order notification poller
+    async def admin_notification_poll_task():
+        logger.info("Admin order notification poll task started...")
+        await asyncio.sleep(15) # Wait 15 seconds after startup before first check
+        while True:
+            try:
+                from backend.app.supabase_helper import supabase
+                from backend.app.bot import notify_admins_of_order
+                if supabase:
+                    res = supabase.table("orders").select("*, order_items(*)").eq("admin_notified", False).execute()
+                    if res.data:
+                        for order in res.data:
+                            order_id = order["id"]
+                            items = order.get("order_items", [])
+                            logger.info(f"New order detected for admin notification: #{order_id}")
+                            try:
+                                await notify_admins_of_order(order, items)
+                                supabase.table("orders").update({"admin_notified": True}).eq("id", order_id).execute()
+                                logger.info(f"Admins notified for order #{order_id}")
+                            except Exception as notify_ex:
+                                logger.error(f"Failed to notify admins for order #{order_id}: {notify_ex}")
+            except Exception as e:
+                logger.error(f"Error in admin notification poll task (if 'admin_notified' column is missing, please add it): {e}")
+            await asyncio.sleep(10) # check every 10 seconds
+
+    admin_notification_task = asyncio.create_task(admin_notification_poll_task())
+    
     yield  # Runs FastAPI application
     
     # 4. Shutdown: Stop Tasks
@@ -101,8 +128,9 @@ async def lifespan(app: FastAPI):
     polling_task.cancel()
     scheduler_task.cancel()
     notification_task.cancel()
+    admin_notification_task.cancel()
     try:
-        await asyncio.gather(polling_task, scheduler_task, notification_task, return_exceptions=True)
+        await asyncio.gather(polling_task, scheduler_task, notification_task, admin_notification_task, return_exceptions=True)
     except Exception:
         pass
     await bot.session.close()
