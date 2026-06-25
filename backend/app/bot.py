@@ -77,7 +77,28 @@ def get_upload_categories_keyboard():
         buttons.append([InlineKeyboardButton(text=cat["name"], callback_data=f"upload_cat_{cat['id']}")])
     return InlineKeyboardMarkup(inline_keyboard=buttons)
 
-# Channel posting helper
+import json
+# Path to save the last posted product ID
+LAST_POSTED_FILE = os.path.join(os.path.dirname(__file__), "last_posted_product.json")
+
+def get_last_posted_id():
+    if os.path.exists(LAST_POSTED_FILE):
+        try:
+            with open(LAST_POSTED_FILE, "r") as f:
+                data = json.load(f)
+                return data.get("last_posted_id")
+        except Exception:
+            pass
+    return None
+
+def save_last_posted_id(prod_id):
+    try:
+        with open(LAST_POSTED_FILE, "w") as f:
+            json.dump({"last_posted_id": prod_id}, f)
+    except Exception as e:
+        logger.error(f"Failed to save last posted product ID: {e}")
+
+# Channel posting helper (posts products sequentially starting from the oldest/first product)
 async def post_random_product_to_channel():
     if not TELEGRAM_CHANNEL_ID:
         logger.warning("TELEGRAM_CHANNEL_ID is not configured. Skipping automatic channel post.")
@@ -89,7 +110,28 @@ async def post_random_product_to_channel():
             logger.info("No products found in Supabase for channel post.")
             return False
             
-        prod = random.choice(products)
+        # Sort products by ID in ascending order (from the very beginning)
+        products = sorted(products, key=lambda x: x["id"])
+        
+        # Get the last posted ID
+        last_id = get_last_posted_id()
+        
+        # Find the next product to post
+        next_prod = None
+        if last_id is not None:
+            # Find the product after last_id
+            for i, p in enumerate(products):
+                if p["id"] == last_id:
+                    # Next one is i+1
+                    if i + 1 < len(products):
+                        next_prod = products[i + 1]
+                    break
+            
+        # If last_id is not found in products list, or we reached the end, start from index 0
+        if next_prod is None:
+            next_prod = products[0]
+            
+        prod = next_prod
         bot_info = await bot.get_me()
         bot_username = bot_info.username
         
@@ -114,14 +156,16 @@ async def post_random_product_to_channel():
         
         if prod.get("image_url"):
             await bot.send_photo(TELEGRAM_CHANNEL_ID, photo=prod["image_url"], caption=caption_text, parse_mode="HTML", reply_markup=kb)
-            logger.info(f"Product {prod['name']} successfully posted to channel with web URL photo.")
+            logger.info(f"Product {prod['name']} (ID: {prod['id']}) successfully posted to channel sequentially.")
+            save_last_posted_id(prod["id"])
             return True
             
         await bot.send_message(TELEGRAM_CHANNEL_ID, caption_text, parse_mode="HTML", reply_markup=kb)
-        logger.info(f"Product {prod['name']} successfully posted to channel as text.")
+        logger.info(f"Product {prod['name']} (ID: {prod['id']}) successfully posted to channel sequentially as text.")
+        save_last_posted_id(prod["id"])
         return True
     except Exception as e:
-        logger.error(f"Error posting product to channel: {e}")
+        logger.error(f"Error posting product sequentially to channel: {e}")
         return False
 
 # --- Admin Photo Uploader Flow ---
