@@ -147,13 +147,15 @@ async def get_gpt_response(message_text: str, history: list = None) -> str:
         )
         
     system_prompt = (
-        "Siz 'Soliha - Ayollar va Bolalar kiyimlari do'koni' yordamchi AI sotuvchisisiz. Vazifangiz xaridorlarga samimiy, muloyim va mehmondo'st tilda, O'zbek tilida savollariga javob berishdir.\n"
-        "Mijozlar do'kondan nafis ayollar kiyimlari, go'daklar va bolalar uchun sifatli kiyim-kechaklar yoki o'yinchoqlar izlashayotgan bo'ladi. Ularga doimo yordam berishga tayyor turing.\n"
-        "Sizda do'kon ma'lumotlar omboriga bog'langan maxsus funksiyalar (tools) mavjud. Har safar mijoz mahsulot, uning narxi, razmeri, toifasi yoki do'kon manzili/telefoni haqida so'raganda, "
-        "albatta mos keluvchi funksiyani chaqiring. O'zingizdan taxminiy narxlar to'qimang!\n"
-        "Mahsulot narxi, o'lchamlari yoki tafsilotlarini doimo bazadagi ma'lumotlarga asoslanib ayting.\n"
-        "Javoblaringizni chiroyli ko'rinishda formatlang va emojilar (masalan: 👗, 🍼, 🧸, 👶, 💵, 📍) ishlating."
+        "Siz 'Soliha - Ayollar va Bolalar kiyimlari do'koni' yordamchi AI sotuvchisisiz. Vazifangiz xaridorlar bilan o'ta xushmuomala, mehmondo'st, juda qisqa, lunda va chiroyli tilda O'zbek tilida muloqot qilishdir. Uzun gapirmang, qisqa va lo'nda javob bering.\n"
+        "Mijozlar ayollar va bolalar kiyimlari haqida so'rashadi.\n"
+        "MUHIM QOIDALAR:\n"
+        "1. Agar mijoz biron-bir mahsulotning narxini so'rasa, yoki mahsulot/o'lcham mavjudligi haqida so'rasa (omborda bor/yo'qligi, tugaganligi, topilmaganligi yoki mavjud emasligi haqida bo'lsa), yordamchi sifatida o'zingiz batafsil javob bermang va hech qachon 'mahsulot mavjud emas' degan gapni ishlatmang. Darhol faqat: 'Hozir sizga yozishadi' deb javob bering va matnda albatta @EnglishteacherMadi adminini chaqiring (tag qiling).\n"
+        "2. Boshqa umumiy savollar (ish vaqti, manzil, katalog qayerda va h.k.) uchun do'konga tegishli funksiyalarni (tools) chaqirib, o'ta qisqa va chiroyli javob bering.\n"
+        "Javoblaringizda doimo chiroyli emojilar ishlating."
     )
+
+
     
     messages = [{"role": "system", "content": system_prompt}]
     
@@ -282,3 +284,52 @@ async def analyze_product_image(image_bytes: bytes, mime_type: str) -> dict:
             "description": "Rasm tahlilida xatolik yuz berdi, lekin tizim mahsulotni yaratdi.",
             "stock": 10
         }
+
+async def generate_video_post_caption(brief_info: str) -> dict:
+    if not client:
+        return {
+            "caption": brief_info,
+            "hashtags": "#solihababyshop #bolalarkiyimi"
+        }
+    try:
+        prompt = (
+            "Siz 'Soliha' ayollar va bolalar kiyimlari do'koni uchun sotuvchi va kopiraytersiz. "
+            "Mijoz quyidagi qisqa ma'lumotni berdi:\n"
+            f"'{brief_info}'\n\n"
+            "Ushbu ma'lumot asosida Instagram va Telegram uchun jozibali, qiziqarli, emojilar bilan boyitilgan, "
+            "sotuvchi matn (caption) va mos keluvchi ommabop heshteglarni (hashtags) o'zbek tilida yozib bering. "
+            "Natijani faqatgina JSON formatida, hech qanday markdown formatlashsiz (```json va ``` teglarsiz) qaytaring: \n"
+            "{\n"
+            "  \"caption\": \"Bu yerda chiroyli yozilgan tavsif matni bo'ladi. Emojilar ishlating.\",\n"
+            "  \"hashtags\": \"#heshteg1 #heshteg2 #solihababyshop\"\n"
+            "}\n"
+            "Javobda faqat to'g'ri JSON bo'lishi shart, qo'shimcha matn yozmang."
+        )
+        response = await client.chat.completions.create(
+            model="gpt-4o-mini",
+            messages=[{"role": "user", "content": prompt}],
+            max_tokens=500
+        )
+        content = response.choices[0].message.content.strip()
+        # Clean markdown wrappers if returned
+        if content.startswith("```json"):
+            content = content[7:]
+        elif content.startswith("```"):
+            content = content[3:]
+        if content.endswith("```"):
+            content = content[:-3]
+        content = content.strip()
+        
+        data = json.loads(content)
+        if "caption" not in data:
+            data["caption"] = brief_info
+        if "hashtags" not in data:
+            data["hashtags"] = "#solihababyshop #bolalarkiyimi"
+        return data
+    except Exception as e:
+        logger.error(f"Error generating video post caption: {e}")
+        return {
+            "caption": brief_info,
+            "hashtags": "#solihababyshop #bolalarkiyimi"
+        }
+

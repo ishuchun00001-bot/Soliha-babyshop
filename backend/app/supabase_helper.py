@@ -251,11 +251,30 @@ def get_registered_admins_telegram_ids() -> List[int]:
 
 # --- Scheduled Video Operations ---
 
-def create_scheduled_video(video_url: str, caption: str, hashtags: str, scheduled_at: str) -> Optional[Dict[str, Any]]:
+async def upload_video_to_storage(video_bytes: bytes, filename: str, mime_type: str) -> Optional[str]:
+    if not supabase:
+        logger.error("Supabase client not initialized. Cannot upload video.")
+        return None
+    try:
+        bucket = supabase.storage.from_(SUPABASE_BUCKET)
+        res = bucket.upload(
+            path=filename,
+            file=video_bytes,
+            file_options={"content-type": mime_type, "cache-control": "3600"}
+        )
+        public_url = bucket.get_public_url(filename)
+        logger.info(f"Video uploaded to Supabase Storage: {public_url}")
+        return public_url
+    except Exception as e:
+        logger.error(f"Error uploading video to Supabase Storage: {e}")
+        return None
+
+def create_scheduled_video(video_url: str, caption: str, hashtags: str, scheduled_at: str, instagram_video_url: Optional[str] = None) -> Optional[Dict[str, Any]]:
     if not supabase: return None
     try:
         data = {
             "video_url": video_url,
+            "instagram_video_url": instagram_video_url,
             "caption": caption,
             "hashtags": hashtags,
             "scheduled_at": scheduled_at,
@@ -266,6 +285,7 @@ def create_scheduled_video(video_url: str, caption: str, hashtags: str, schedule
     except Exception as e:
         logger.error(f"Error creating scheduled video: {e}")
         return None
+
 
 def get_pending_scheduled_videos() -> List[Dict[str, Any]]:
     if not supabase: return []

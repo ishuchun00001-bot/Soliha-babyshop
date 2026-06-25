@@ -15,7 +15,7 @@ from aiogram.fsm.storage.memory import MemoryStorage
 
 from backend.app.config import TELEGRAM_BOT_TOKEN, ADMIN_USERNAMES, TELEGRAM_CHANNEL_ID
 from backend.app import supabase_helper
-from backend.app.openai_helper import get_gpt_response, analyze_product_image
+from backend.app.openai_helper import get_gpt_response, analyze_product_image, generate_video_post_caption
 
 # Set up logging
 logging.basicConfig(level=logging.INFO)
@@ -47,25 +47,16 @@ class VideoUploadStates(StatesGroup):
 def get_main_keyboard(is_admin=False):
     webapp_url = os.getenv("WEBAPP_URL", "")
     
-    # First row has Catalog
+    # First row has Catalog and WebApp
     first_row = [KeyboardButton(text="🛍️ Katalog")]
-    
-    # Only add WebApp button if we have a valid HTTPS link (Vercel deployment link)
     if webapp_url.startswith("https://"):
         first_row.append(KeyboardButton(text="🌐 Mini Do'kon", web_app=WebAppInfo(url=webapp_url)))
         
     kb = [
         first_row,
-        [
-            KeyboardButton(text="🛒 Savatcha"),
-            KeyboardButton(text="📦 Buyurtmalarim")
-        ],
-        [
-            KeyboardButton(text="📞 Biz bilan bog'lanish")
-        ]
+        [KeyboardButton(text="🎥 Video rejalashtirish")],
+        [KeyboardButton(text="⚙️ Admin Panel Havolasi")]
     ]
-    if is_admin:
-        kb.append([KeyboardButton(text="⚙️ Admin Panel Havolasi")])
     return ReplyKeyboardMarkup(keyboard=kb, resize_keyboard=True)
 
 def get_categories_keyboard():
@@ -320,6 +311,7 @@ async def process_upload_sizes(message: Message, state: FSMContext):
 
 # --- Video Scheduling Handlers ---
 
+@router.message(F.text == "🎥 Video rejalashtirish")
 @router.message(Command("schedule_video"))
 async def start_video_scheduler(message: Message, state: FSMContext):
     user = message.from_user
@@ -340,32 +332,70 @@ async def process_video_upload(message: Message, state: FSMContext):
         return
         
     file_id = message.video.file_id
-    await state.update_data(video_url=file_id)
+    progress_msg = await message.answer("⏳ Video yuklab olinmoqda va Supabase Storage'ga yuklanmoqda. Iltimos kuting...")
     
-    await message.answer(
-        "📝 Video uchun tavsif va heshteglarni kiriting (yoki /skip bosing):\n\n"
-        "Masalan: Yangi pijamalar keldi! #bolalarkiyimi #pijama"
-    )
-    await state.set_state(VideoUploadStates.waiting_for_caption)
+    try:
+        # Get video file info
+        file_info = await bot.get_file(file_id)
+        
+        # Download video to memory bytes
+        file_io = io.BytesIO()
+        await bot.download(file_info, destination=file_io)
+        video_bytes = file_io.getvalue()
+        
+        # Upload to Supabase Storage
+        filename = f"video_{int(time.time())}.mp4"
+        public_url = await supabase_helper.upload_video_to_storage(video_bytes, filename, "video/mp4")
+        
+        if not public_url:
+            await progress_msg.edit_text("❌ Videoni yuklashda xatolik yuz berdi. Supabase Storage sozlamalarini tekshiring.")
+            await state.clear()
+            return
+            
+        await state.update_data(video_url=file_id, instagram_video_url=public_url)
+        await progress_msg.edit_text(
+            "✅ Video muvaffaqiyatli saqlandi!\n\n"
+            "📝 Endi video haqida qisqacha ma'lumot yozing (masalan: 'Chiroyli bolalar pijamasi keldi, narxi 85,000 so'm, Zarafshon bo'ylab yetkazib berish bepul').\n"
+            "Men u uchun GPT yordamida chiroyli matn va heshteglarni tayyorlayman:"
+        )
+        await state.set_state(VideoUploadStates.waiting_for_caption)
+        
+    except Exception as e:
+        logger.error(f"Error processing video upload in bot: {e}")
+        await progress_msg.edit_text(f"❌ Xatolik yuz berdi: {str(e)}")
+        await state.clear()
 
 @router.message(VideoUploadStates.waiting_for_caption)
 async def process_video_caption(message: Message, state: FSMContext):
-    caption = "" if message.text == "/skip" else message.text
+    brief_prompt = message.text.strip()
     
-    words = caption.split()
-    hashtags_list = [w for w in words if w.startswith("#")]
-    hashtags = " ".join(hashtags_list)
+    progress_msg = await message.answer("🪄 Sun'iy intellekt (GPT) matn va heshteglarni generatsiya qilmoqda. Iltimos kuting...")
     
-    description_list = [w for w in words if not w.startswith("#")]
-    description = " ".join(description_list)
-    
-    await state.update_data(caption=description, hashtags=hashtags)
-    
-    await message.answer(
-        "📅 Qachon joylashtirilsin? (Format: YYYY-MM-DD HH:MM, masalan: 2026-06-25 15:30. "
-        "Yoki daqiqalarda kiriting, masalan: 15 daqiqadan keyin):"
-    )
-    await state.set_state(VideoUploadStates.waiting_for_time)
+    try:
+        # Call GPT helper to generate caption and hashtags
+        ai_data = await generate_video_post_caption(brief_prompt)
+        caption = ai_data.get("caption", brief_prompt)
+        hashtags = ai_data.get("hashtags", "")
+        
+        await state.update_data(caption=caption, hashtags=hashtags)
+        
+        await progress_msg.edit_text(
+            f"✨ {html.bold('GPT TAVSIFI VA HESHTEGLARI:')}\n\n"
+            f"{caption}\n\n"
+            f"{html.italic(hashtags)}\n\n"
+            f"📅 {html.bold('Ushbu video qachon joylashtirilsin?')}\n"
+            f"Format: YYYY-MM-DD HH:MM (masalan: 2026-06-25 15:30)\n"
+            f"Yoki daqiqalarda: '15 daqiqadan keyin' deb yozing:"
+        )
+        await state.set_state(VideoUploadStates.waiting_for_time)
+        
+    except Exception as e:
+        logger.error(f"Error generating caption in bot: {e}")
+        await progress_msg.edit_text(
+            "❌ Matn yaratishda xatolik yuz berdi. Iltimos, o'zingiz tavsif matnini kiriting:"
+        )
+        await state.update_data(caption=brief_prompt, hashtags="#solihababyshop")
+        await state.set_state(VideoUploadStates.waiting_for_time)
 
 @router.message(VideoUploadStates.waiting_for_time)
 async def process_video_time(message: Message, state: FSMContext):
@@ -397,11 +427,13 @@ async def process_video_time(message: Message, state: FSMContext):
         
     data = await state.get_data()
     video_url = data.get("video_url")
+    instagram_video_url = data.get("instagram_video_url")
     caption = data.get("caption", "")
     hashtags = data.get("hashtags", "")
     
     res = supabase_helper.create_scheduled_video(
         video_url=video_url,
+        instagram_video_url=instagram_video_url,
         caption=caption,
         hashtags=hashtags,
         scheduled_at=parsed_time.isoformat()
@@ -414,12 +446,14 @@ async def process_video_time(message: Message, state: FSMContext):
             f"✅ Video muvaffaqiyatli rejalashtirildi!\n\n"
             f"📅 Joylashtirish vaqti: {local_time_str} (Zarafshon vaqti bilan)\n"
             f"📝 Tavsif: {caption}\n"
-            f"🏷 Heshteglar: {hashtags}"
+            f"🏷 Heshteglar: {hashtags}\n\n"
+            f"Rejalashtirilgan vaqtda ushbu video ham Telegram kanalga, ham Instagram Reels'ga yuklanadi!"
         )
     else:
         await message.answer("❌ Videoni bazaga saqlashda xatolik yuz berdi! Iltimos qayta urinib ko'ring.")
         
     await state.clear()
+
 
 # --- Customer Menu Handlers (Supabase integration) ---
 
@@ -858,10 +892,11 @@ async def show_contact_info(message: Message):
         f"📍 Bizning manzil: Zarafshon shahri, 11-44 avtobus bekatida\n"
         f"📞 Telefonlar: +998 93 067 18 88, +998 97 320 06 68\n"
         f"💬 Telegram admin: @EnglishteacherMadi, @Salomov_2502\n"
-        f"📸 Instagram: @soliha_boutique (sozlanadi)\n\n"
+        f"📸 Instagram: <a href='https://www.instagram.com/soliha_baby_shop_zar/'>@soliha_baby_shop_zar</a>\n\n"
         f"Har kuni 09:00 dan 20:00 gacha xizmatingizdamiz!"
     )
     await message.answer(contact_text, parse_mode="HTML")
+
 
 @router.message(F.text == "⚙️ Admin Panel Havolasi")
 async def show_admin_link(message: Message):
@@ -900,7 +935,7 @@ async def handle_gpt_chat(message: Message, state: FSMContext):
     if username and username.lower() in [u.lower() for u in ADMIN_USERNAMES]:
         return
 
-    if message.text.startswith("/") or message.text in ["🛍️ Katalog", "🌐 Mini Do'kon", "🛒 Savatcha", "📦 Buyurtmalarim", "📞 Biz bilan bog'lanish", "⚙️ Admin Panel Havolasi"]:
+    if message.text.startswith("/") or message.text in ["🛍️ Katalog", "🌐 Mini Do'kon", "🛒 Savatcha", "📦 Buyurtmalarim", "📞 Biz bilan bog'lanish", "⚙️ Admin Panel Havolasi", "🎥 Video rejalashtirish"]:
         return
         
     await bot.send_chat_action(message.chat.id, action="typing")
