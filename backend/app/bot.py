@@ -93,9 +93,8 @@ async def post_random_product_to_channel():
         bot_info = await bot.get_me()
         bot_username = bot_info.username
         
-        buy_deep_link = f"https://t.me/{bot_username}?start=prod_{prod['id']}"
         webapp_url = os.getenv("WEBAPP_URL", "")
-        site_link = webapp_url if webapp_url.startswith("https://") else "https://solihastore.vercel.app" # fallback
+        site_link = webapp_url if webapp_url.startswith("https://") else "https://soliha-babyshop.vercel.app/" # fallback
         
         size_str = f"\n📏 O'lchamlar: {prod['sizes']}" if prod.get("sizes") else ""
         
@@ -104,12 +103,11 @@ async def post_random_product_to_channel():
             f"👶👗 {html.bold(prod['name'])}\n"
             f"📝 Tavsif: {prod.get('description') or 'Mavjud emas'}\n"
             f"💵 Narxi: {html.bold(f'{prod['price']:,.0f}')} so'm{size_str}\n\n"
-            f"🛍&nbsp;Buyurtma berish yoki do'konga o'tish uchun quyidagi tugmalardan foydalaning 👇"
+            f"🛍 Buyurtma berish va do'konga o'tish uchun quyidagi tugmadan foydalaning 👇"
         )
         
         kb = InlineKeyboardMarkup(inline_keyboard=[
             [
-                InlineKeyboardButton(text="🛍️ Bot orqali sotib olish", url=buy_deep_link),
                 InlineKeyboardButton(text="🌐 Mini-Saytda ko'rish", url=site_link)
             ]
         ])
@@ -717,7 +715,7 @@ async def show_admin_link(message: Message):
     username = message.from_user.username
     if username and username.lower() in [u.lower() for u in ADMIN_USERNAMES]:
         webapp_url = os.getenv("WEBAPP_URL", "")
-        site_link = webapp_url if webapp_url.startswith("https://") else "https://solihastore.vercel.app"
+        site_link = webapp_url if webapp_url.startswith("https://") else "https://soliha-babyshop.vercel.app/"
         await message.answer(
             f"🔑 Admin paneliga o'tish uchun quyidagi havolani bosing:\n"
             f"{site_link}/admin.html\n\n"
