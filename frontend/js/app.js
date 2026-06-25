@@ -156,6 +156,12 @@ function renderCart() {
     cartBadge.innerText = count;
     cartBadge.style.display = count > 0 ? "flex" : "none";
     
+    const floatingBadge = document.getElementById("floatingCartBadge");
+    if (floatingBadge) {
+        floatingBadge.innerText = count;
+        floatingBadge.style.display = count > 0 ? "flex" : "none";
+    }
+    
     if (keys.length === 0) {
         cartItemsContainer.innerHTML = `<div style="text-align: center; color: var(--text-light); padding: 3rem 0;">
             Savatchangiz bo'sh 🍼

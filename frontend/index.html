@@ -3,13 +3,27 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Soliha - Ayollar va Bolalar Kiyimlari Do'koni</title>
-    <meta name="description" content="Eng zamonaviy ayollar kiyimlari, sifatli bolalar kiyim-kechaklari va aksessuarlari Soliha do'konida!">
-    <link rel="stylesheet" href="/css/style.css?v=2">
-    <!-- Supabase JS Client CDN -->
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <title>Soliha - Premium Ayollar va Bolalar Kiyimlari Do'koni</title>
+    <meta name="description" content="Eng nafis ayollar kiyimlari, sifatli va qulay bolalar kiyim-kechaklari hamda go'daklar uchun aksessuarlar Soliha boutique do'konida!">
+    
+    <!-- Premium Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=Playfair+Display:ital,wght@0,400..900;1,400..900&display=swap" rel="stylesheet">
+    
+    <!-- CSS Link -->
+    <link rel="stylesheet" href="/css/style.css?v=3">
 </head>
 <body>
+
+    <!-- Decorative background elements -->
+    <div class="bg-glow bg-glow-1"></div>
+    <div class="bg-glow bg-glow-2"></div>
+
+    <!-- Announcement Bar -->
+    <div class="announcement-bar">
+        <span>✨ Zarafshon shahri bo'ylab bepul yetkazib berish! 🛍️ 9:00 dan 20:00 gacha xizmatingizdamiz</span>
+    </div>
 
     <!-- Drawer Overlay -->
     <div class="drawer-overlay" id="drawerOverlay"></div>
@@ -17,24 +31,34 @@
     <!-- Header -->
     <header>
         <div class="logo-container">
-            <span class="logo-text">Soliha <span class="logo-subtext">Style & Kids</span> 👗🍼</span>
+            <span class="logo-text">Soliha <span class="logo-subtext">Boutique</span> 👗🍼</span>
         </div>
-        <div class="cart-icon-container" id="cartTrigger">
-            <span>🛒 Savatcha</span>
-            <div class="cart-badge" id="cartBadge">0</div>
+        
+        <div class="header-right">
+            <div class="cart-icon-container" id="cartTrigger">
+                <span class="cart-icon-wrapper">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="21" r="1"></circle><circle cx="20" cy="21" r="1"></circle><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path></svg>
+                </span>
+                <span class="cart-label">Savatcha</span>
+                <div class="cart-badge" id="cartBadge">0</div>
+            </div>
         </div>
     </header>
 
     <!-- Hero Section -->
     <section class="hero">
-        <h1>Ayollar va Bolalar uchun <span>Sifatli Kiyimlar</span></h1>
-        <p>Soliha do'konidan o'zingiz va farzandlaringiz uchun eng sara kiyimlarni tanlang</p>
+        <div class="hero-tag">Nafislik va Qulaylik</div>
+        <h1>Soliha do'konida <span>Go'zallik va Sifat</span> uyg'unligi</h1>
+        <p>Farzandingiz va o'zingiz uchun eng sara, sifatli va betakror kiyim-kechaklar to'plamini taqdim etamiz</p>
     </section>
 
     <!-- Search Section -->
     <div class="search-container">
         <div class="search-wrapper">
-            <input type="text" class="search-input" id="searchInput" placeholder="Mahsulotlarni qidirish...">
+            <span class="search-icon">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+            </span>
+            <input type="text" class="search-input" id="searchInput" placeholder="Kiyimlar, razmerlar yoki toifalarni qidiring...">
         </div>
     </div>
 
@@ -46,11 +70,42 @@
     <!-- Products Grid -->
     <main class="products-section">
         <div class="products-grid" id="productsGrid">
-            <div style="grid-column: 1/-1; text-align: center; color: var(--text-light); padding: 3rem;">
-                Mahsulotlar yuklanmoqda... 👗🍼
+            <div style="grid-column: 1/-1; text-align: center; color: var(--text-muted); padding: 5rem 0;">
+                <div class="loading-spinner"></div>
+                <p style="margin-top: 1rem; font-weight: 500;">Nafis kiyimlar yuklanmoqda... 👗🍼</p>
             </div>
         </div>
     </main>
+
+    <!-- Floating Action Button for Mobile Cart -->
+    <div class="floating-cart" id="floatingCartTrigger">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="21" r="1"></circle><circle cx="20" cy="21" r="1"></circle><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path></svg>
+        <div class="floating-cart-badge" id="floatingCartBadge">0</div>
+    </div>
+
+    <!-- Footer -->
+    <footer>
+        <div class="footer-grid">
+            <div class="footer-brand">
+                <h3>Soliha Boutique 👗🍼</h3>
+                <p>Ayollar va bolalar kiyimlarining eng nafis to'plami. Sifat biz uchun eng birinchi o'rinda.</p>
+            </div>
+            <div class="footer-contacts">
+                <h4>Bog'lanish 📞</h4>
+                <p>📍 Zarafshon shahri, 11-44 avtobus bekatida</p>
+                <p>📞 +998 93 067 18 88</p>
+                <p>📞 +998 97 320 06 68 (aloqa uchun)</p>
+            </div>
+            <div class="footer-hours">
+                <h4>Ish vaqti ⏰</h4>
+                <p>Dushanba - Yakshanba</p>
+                <p>09:00 dan 20:00 gacha</p>
+            </div>
+        </div>
+        <div class="footer-bottom">
+            <p>&copy; 2026 Soliha Store. Barcha huquqlar himoyalangan.</p>
+        </div>
+    </footer>
 
     <!-- Cart Drawer -->
     <div class="cart-drawer" id="cartDrawer">
@@ -80,7 +135,7 @@
             <form id="checkoutForm">
                 <div class="form-group">
                     <label for="custName">Ismingiz:</label>
-                    <input type="text" id="custName" required placeholder="Masalan: Madiyor">
+                    <input type="text" id="custName" required placeholder="Ismingizni kiriting">
                 </div>
                 <div class="form-group">
                     <label for="custPhone">Telefon raqamingiz:</label>
@@ -107,16 +162,23 @@
 
     <!-- Success Modal -->
     <div class="modal" id="successModal">
-        <div class="modal-content" style="text-align: center; padding: 2.5rem;">
-            <div style="font-size: 5rem; margin-bottom: 1rem;">🎉</div>
-            <h2 style="font-weight: 700; color: var(--primary-pink); margin-bottom: 0.5rem;">Buyurtma Qabul Qilindi!</h2>
-            <p style="color: var(--text-light); margin-bottom: 2rem; font-size: 1.1rem;">Rahmat! Buyurtmangiz muvaffaqiyatli rasmiylashtirildi. Tez orada siz bilan bog'lanamiz.</p>
+        <div class="modal-content" style="text-align: center; padding: 3rem 2rem;">
+            <div class="success-checkmark">
+                <div class="checkmark-circle">
+                    <div class="checkmark-draw"></div>
+                </div>
+            </div>
+            <h2 style="font-family: 'Playfair Display', serif; font-weight: 700; color: var(--primary-rose-dark); margin-top: 1.5rem; margin-bottom: 0.5rem; font-size: 1.8rem;">Buyurtmangiz Qabul Qilindi! 🎉</h2>
+            <p style="color: var(--text-muted); margin-bottom: 2.5rem; font-size: 1rem; line-height: 1.6;">Xaridingiz uchun rahmat! Buyurtmangiz muvaffaqiyatli ro'yxatga olindi. Tez orada do'kon ma'murlari siz bilan bog'lanishadi.</p>
             <button class="btn-primary" id="successClose" style="width: 100%;">Tushunarli</button>
         </div>
     </div>
 
-    <!-- Scripts -->
-    <script src="/js/config.js"></script>
-    <script src="/js/app.js"></script>
+    <!-- Script to link Floating Cart to standard logic -->
+    <script>
+        document.getElementById('floatingCartTrigger').addEventListener('click', () => {
+            document.getElementById('cartTrigger').click();
+        });
+    </script>
 </body>
 </html>
