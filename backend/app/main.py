@@ -40,7 +40,7 @@ async def lifespan(app: FastAPI):
     await bot.delete_webhook(drop_pending_updates=True)
     polling_task = asyncio.create_task(dp.start_polling(bot))
     
-    # 3. Startup: Start Channel Post Scheduler (every 30 minutes)
+    # 3. Startup: Start Channel Post Scheduler (every 15 minutes)
     from backend.app.bot import post_random_product_to_channel
     async def channel_post_scheduler():
         logger.info("Channel posting scheduler started (waiting 30 seconds before first run)...")
@@ -51,7 +51,7 @@ async def lifespan(app: FastAPI):
                 await post_random_product_to_channel()
             except Exception as ex:
                 logger.error(f"Error in channel scheduler: {ex}")
-            await asyncio.sleep(1800) # 1800 seconds = 30 minutes
+            await asyncio.sleep(900) # 900 seconds = 15 minutes
             
     scheduler_task = asyncio.create_task(channel_post_scheduler())
     
