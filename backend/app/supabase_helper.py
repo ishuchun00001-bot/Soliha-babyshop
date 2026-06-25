@@ -248,3 +248,46 @@ def get_registered_admins_telegram_ids() -> List[int]:
     except Exception as e:
         logger.error(f"Error fetching admin IDs: {e}")
         return []
+
+# --- Scheduled Video Operations ---
+
+def create_scheduled_video(video_url: str, caption: str, hashtags: str, scheduled_at: str) -> Optional[Dict[str, Any]]:
+    if not supabase: return None
+    try:
+        data = {
+            "video_url": video_url,
+            "caption": caption,
+            "hashtags": hashtags,
+            "scheduled_at": scheduled_at,
+            "is_posted": False
+        }
+        res = supabase.table("scheduled_videos").insert(data).execute()
+        return res.data[0] if res.data else None
+    except Exception as e:
+        logger.error(f"Error creating scheduled video: {e}")
+        return None
+
+def get_pending_scheduled_videos() -> List[Dict[str, Any]]:
+    if not supabase: return []
+    try:
+        from datetime import datetime, timezone
+        now_str = datetime.now(timezone.utc).isoformat()
+        res = supabase.table("scheduled_videos")\
+            .select("*")\
+            .eq("is_posted", False)\
+            .lte("scheduled_at", now_str)\
+            .execute()
+        return res.data or []
+    except Exception as e:
+        logger.error(f"Error fetching pending scheduled videos: {e}")
+        return []
+
+def mark_video_as_posted(video_id: int) -> bool:
+    if not supabase: return False
+    try:
+        res = supabase.table("scheduled_videos").update({"is_posted": True}).eq("id", video_id).execute()
+        return len(res.data) > 0 if res.data else True
+    except Exception as e:
+        logger.error(f"Error marking video as posted: {e}")
+        return False
+

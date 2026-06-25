@@ -37,6 +37,12 @@ class ProductUploadStates(StatesGroup):
     waiting_for_category = State()
     waiting_for_sizes = State()
 
+# States for scheduled video uploading
+class VideoUploadStates(StatesGroup):
+    waiting_for_video = State()
+    waiting_for_caption = State()
+    waiting_for_time = State()
+
 # Helper keyboard creators
 def get_main_keyboard(is_admin=False):
     webapp_url = os.getenv("WEBAPP_URL", "")
@@ -309,6 +315,109 @@ async def process_upload_sizes(message: Message, state: FSMContext):
     except Exception as e:
         logger.error(f"Error creating product from bot: {e}")
         await progress_msg.edit_text(f"❌ Xatolik yuz berdi: {str(e)}")
+        
+    await state.clear()
+
+# --- Video Scheduling Handlers ---
+
+@router.message(Command("schedule_video"))
+async def start_video_scheduler(message: Message, state: FSMContext):
+    user = message.from_user
+    username = user.username
+    is_admin = username and username.lower() in [u.lower() for u in ADMIN_USERNAMES]
+    
+    if not is_admin:
+        await message.answer("Kechirasiz, siz admin emassiz.")
+        return
+        
+    await message.answer("📹 Iltimos, rejalashtiriladigan videoni yuboring:")
+    await state.set_state(VideoUploadStates.waiting_for_video)
+
+@router.message(VideoUploadStates.waiting_for_video)
+async def process_video_upload(message: Message, state: FSMContext):
+    if not message.video:
+        await message.answer("❌ Iltimos, videofayl yuboring:")
+        return
+        
+    file_id = message.video.file_id
+    await state.update_data(video_url=file_id)
+    
+    await message.answer(
+        "📝 Video uchun tavsif va heshteglarni kiriting (yoki /skip bosing):\n\n"
+        "Masalan: Yangi pijamalar keldi! #bolalarkiyimi #pijama"
+    )
+    await state.set_state(VideoUploadStates.waiting_for_caption)
+
+@router.message(VideoUploadStates.waiting_for_caption)
+async def process_video_caption(message: Message, state: FSMContext):
+    caption = "" if message.text == "/skip" else message.text
+    
+    words = caption.split()
+    hashtags_list = [w for w in words if w.startswith("#")]
+    hashtags = " ".join(hashtags_list)
+    
+    description_list = [w for w in words if not w.startswith("#")]
+    description = " ".join(description_list)
+    
+    await state.update_data(caption=description, hashtags=hashtags)
+    
+    await message.answer(
+        "📅 Qachon joylashtirilsin? (Format: YYYY-MM-DD HH:MM, masalan: 2026-06-25 15:30. "
+        "Yoki daqiqalarda kiriting, masalan: 15 daqiqadan keyin):"
+    )
+    await state.set_state(VideoUploadStates.waiting_for_time)
+
+@router.message(VideoUploadStates.waiting_for_time)
+async def process_video_time(message: Message, state: FSMContext):
+    text = message.text.strip()
+    from datetime import datetime, timedelta, timezone
+    
+    parsed_time = None
+    
+    if "daqiqadan keyin" in text.lower() or "minutdan keyin" in text.lower():
+        digits = "".join([c for c in text if c.isdigit()])
+        if digits:
+            minutes = int(digits)
+            parsed_time = datetime.now(timezone.utc) + timedelta(minutes=minutes)
+    else:
+        try:
+            dt = datetime.strptime(text, "%Y-%m-%d %H:%M")
+            parsed_time = dt - timedelta(hours=5) # convert UTC+5 local to UTC
+            parsed_time = parsed_time.replace(tzinfo=timezone.utc)
+        except ValueError:
+            pass
+            
+    if not parsed_time:
+        await message.answer(
+            "❌ Format noto'g'ri! Iltimos quyidagi formatlardan birida kiriting:\n"
+            "- YYYY-MM-DD HH:MM (masalan: 2026-06-25 15:30)\n"
+            "- X daqiqadan keyin (masalan: 10 daqiqadan keyin)"
+        )
+        return
+        
+    data = await state.get_data()
+    video_url = data.get("video_url")
+    caption = data.get("caption", "")
+    hashtags = data.get("hashtags", "")
+    
+    res = supabase_helper.create_scheduled_video(
+        video_url=video_url,
+        caption=caption,
+        hashtags=hashtags,
+        scheduled_at=parsed_time.isoformat()
+    )
+    
+    if res:
+        local_time = parsed_time + timedelta(hours=5)
+        local_time_str = local_time.strftime("%Y-%m-%d %H:%M")
+        await message.answer(
+            f"✅ Video muvaffaqiyatli rejalashtirildi!\n\n"
+            f"📅 Joylashtirish vaqti: {local_time_str} (Zarafshon vaqti bilan)\n"
+            f"📝 Tavsif: {caption}\n"
+            f"🏷 Heshteglar: {hashtags}"
+        )
+    else:
+        await message.answer("❌ Videoni bazaga saqlashda xatolik yuz berdi! Iltimos qayta urinib ko'ring.")
         
     await state.clear()
 

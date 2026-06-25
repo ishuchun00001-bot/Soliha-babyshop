@@ -20,3 +20,6 @@ env/
 # Ignore uploads directory if any local uploads exist
 backend/static/uploads/*
 !backend/static/uploads/.gitkeep
+
+# Ignore JSON state files
+backend/app/last_posted_product.json

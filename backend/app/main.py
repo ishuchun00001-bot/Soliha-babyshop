@@ -4,9 +4,9 @@ import logging
 from contextlib import asynccontextmanager
 from typing import List, Optional
 
-from fastapi import FastAPI, Depends, HTTPException, status, File, UploadFile, Form
+from fastapi import FastAPI, Depends, HTTPException, status, File, UploadFile, Form, Query
 from fastapi.staticfiles import StaticFiles
-from fastapi.responses import FileResponse, RedirectResponse
+from fastapi.responses import FileResponse, RedirectResponse, PlainTextResponse
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
 
@@ -121,6 +121,49 @@ async def lifespan(app: FastAPI):
 
     admin_notification_task = asyncio.create_task(admin_notification_poll_task())
     
+    # 3.7 Startup: Start scheduled video poster poller (every 60 seconds)
+    async def scheduled_video_poll_task():
+        logger.info("Scheduled video posting poll task started...")
+        await asyncio.sleep(20) # Wait 20 seconds after startup before first check
+        while True:
+            try:
+                from backend.app.supabase_helper import get_pending_scheduled_videos, mark_video_as_posted
+                from backend.app.bot import bot, TELEGRAM_CHANNEL_ID
+                
+                if TELEGRAM_CHANNEL_ID:
+                    pending_videos = get_pending_scheduled_videos()
+                    for video in pending_videos:
+                        video_id = video["id"]
+                        file_id = video["video_url"]
+                        desc = video.get("caption") or ""
+                        tags = video.get("hashtags") or ""
+                        
+                        caption_text = ""
+                        if desc and tags:
+                            caption_text = f"{desc}\n\n{tags}"
+                        elif desc:
+                            caption_text = desc
+                        elif tags:
+                            caption_text = tags
+                            
+                        logger.info(f"Posting scheduled video #{video_id} to channel...")
+                        try:
+                            await bot.send_video(
+                                chat_id=TELEGRAM_CHANNEL_ID,
+                                video=file_id,
+                                caption=caption_text,
+                                parse_mode="HTML"
+                            )
+                            mark_video_as_posted(video_id)
+                            logger.info(f"Scheduled video #{video_id} posted and marked as completed.")
+                        except Exception as post_ex:
+                            logger.error(f"Failed to post scheduled video #{video_id}: {post_ex}")
+            except Exception as e:
+                logger.error(f"Error in scheduled video poll task (if 'scheduled_videos' table is missing, please add it): {e}")
+            await asyncio.sleep(60) # Check every 60 seconds
+
+    video_posting_task = asyncio.create_task(scheduled_video_poll_task())
+    
     yield  # Runs FastAPI application
     
     # 4. Shutdown: Stop Tasks
@@ -129,8 +172,9 @@ async def lifespan(app: FastAPI):
     scheduler_task.cancel()
     notification_task.cancel()
     admin_notification_task.cancel()
+    video_posting_task.cancel()
     try:
-        await asyncio.gather(polling_task, scheduler_task, notification_task, admin_notification_task, return_exceptions=True)
+        await asyncio.gather(polling_task, scheduler_task, notification_task, admin_notification_task, video_posting_task, return_exceptions=True)
     except Exception:
         pass
     await bot.session.close()
@@ -164,6 +208,69 @@ def verify_admin_token(token: str = None):
             detail="Noto'g'ri admin paroli"
         )
     return True
+
+# --- Instagram Webhook Endpoints ---
+
+@app.get("/api/instagram/webhook")
+def verify_instagram_webhook(
+    mode: str = Query(None, alias="hub.mode"),
+    challenge: str = Query(None, alias="hub.challenge"),
+    verify_token: str = Query(None, alias="hub.verify_token")
+):
+    from backend.app.config import INSTAGRAM_VERIFY_TOKEN
+    if mode == "subscribe" and verify_token == INSTAGRAM_VERIFY_TOKEN:
+        logger.info("Instagram webhook verified successfully.")
+        return PlainTextResponse(content=challenge)
+    raise HTTPException(status_code=403, detail="Verification token mismatch")
+
+@app.post("/api/instagram/webhook")
+async def receive_instagram_webhook(payload: dict):
+    if payload.get("object") != "instagram":
+        return {"status": "ignored"}
+        
+    for entry in payload.get("entry", []):
+        for messaging_event in entry.get("messaging", []):
+            sender_id = messaging_event.get("sender", {}).get("id")
+            message = messaging_event.get("message", {})
+            message_text = message.get("text")
+            
+            if sender_id and message_text:
+                logger.info(f"Received Instagram DM from {sender_id}: {message_text}")
+                
+                # 1. Notify admins via Telegram
+                try:
+                    from backend.app.bot import bot
+                    from backend.app.supabase_helper import get_registered_admins_telegram_ids
+                    
+                    admin_chat_ids = get_registered_admins_telegram_ids()
+                    
+                    notification_msg = (
+                        f"✉️ <b>INSTAGRAM DIRECT XABARI!</b>\n\n"
+                        f"👤 Mijoz ID: {sender_id}\n"
+                        f"💬 Xabar: {message_text}"
+                    )
+                    
+                    for chat_id in admin_chat_ids:
+                        try:
+                            await bot.send_message(chat_id, notification_msg, parse_mode="HTML")
+                        except Exception as admin_ex:
+                            logger.error(f"Failed to notify admin {chat_id} of Instagram DM: {admin_ex}")
+                except Exception as tg_notify_err:
+                    logger.error(f"Telegram admin notification error: {tg_notify_err}")
+                
+                # 2. Reply to user using GPT helper
+                try:
+                    from backend.app.instagram_helper import handle_instagram_user_message, send_instagram_message
+                    
+                    # Generate reply via GPT
+                    reply_text = await handle_instagram_user_message(sender_id, message_text)
+                    if reply_text:
+                        # Send reply to Instagram Direct
+                        await send_instagram_message(sender_id, reply_text)
+                except Exception as reply_err:
+                    logger.error(f"Failed to reply to Instagram DM: {reply_err}")
+                    
+    return {"status": "ok"}
 
 # --- HTML Page Routes ---
 
