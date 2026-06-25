@@ -726,6 +726,21 @@ async def show_admin_link(message: Message):
     else:
         await message.answer("Kechirasiz, siz admin emassiz.")
 
+# Service message handlers to delete join/leave messages in group chats
+@router.message(F.new_chat_members)
+async def delete_join_message(message: Message):
+    try:
+        await message.delete()
+    except Exception as e:
+        logger.error(f"Failed to delete join message: {e}")
+
+@router.message(F.left_chat_member)
+async def delete_leave_message(message: Message):
+    try:
+        await message.delete()
+    except Exception as e:
+        logger.error(f"Failed to delete leave message: {e}")
+
 # Fallback free text handler -> OpenAI GPT assistant
 @router.message(F.text)
 async def handle_gpt_chat(message: Message, state: FSMContext):
