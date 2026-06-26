@@ -96,7 +96,7 @@ async def publish_instagram_reel(video_url: str, caption: str) -> bool:
 
     try:
         async with httpx.AsyncClient() as client:
-            res = await client.post(url_container, data=payload, timeout=15.0)
+            res = await client.post(url_container, json=payload, timeout=15.0)
             if res.status_code != 200:
                 logger.error(f"Failed to create Instagram media container. Code: {res.status_code}, Resp: {res.text}")
                 return False
@@ -139,7 +139,7 @@ async def publish_instagram_reel(video_url: str, caption: str) -> bool:
                 "access_token": INSTAGRAM_PAGE_ACCESS_TOKEN
             }
             
-            publish_res = await client.post(url_publish, data=publish_payload, timeout=15.0)
+            publish_res = await client.post(url_publish, json=publish_payload, timeout=15.0)
             if publish_res.status_code == 200:
                 media_id = publish_res.json().get("id")
                 logger.info(f"Successfully published Reel to Instagram. Media ID: {media_id}")

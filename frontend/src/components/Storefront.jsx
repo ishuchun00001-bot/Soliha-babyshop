@@ -37,6 +37,39 @@ export default function Storefront() {
         localStorage.setItem("soliha_cart", JSON.stringify(cart));
     }, [cart]);
 
+    // Log visitor session
+    useEffect(() => {
+        async function logVisit() {
+            try {
+                // 1. Get or generate visitor_id
+                let visitorId = localStorage.getItem("soliha_visitor_id");
+                if (!visitorId) {
+                    visitorId = 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+                        const r = Math.random() * 16 | 0;
+                        const v = c === 'x' ? r : (r & 0x3 | 0x8);
+                        return v.toString(16);
+                    });
+                    localStorage.setItem("soliha_visitor_id", visitorId);
+                }
+
+                // 2. Check if already logged in this session
+                const sessionLogged = sessionStorage.getItem("soliha_visit_logged");
+                if (!sessionLogged) {
+                    const { error } = await supabase
+                        .from("visit_logs")
+                        .insert([{ visitor_id: visitorId }]);
+                    
+                    if (!error) {
+                        sessionStorage.setItem("soliha_visit_logged", "true");
+                    }
+                }
+            } catch (err) {
+                console.error("Failed to log visit:", err);
+            }
+        }
+        logVisit();
+    }, []);
+
     // Fetch initial data
     useEffect(() => {
         async function fetchData() {

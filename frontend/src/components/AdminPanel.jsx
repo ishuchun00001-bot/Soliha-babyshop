@@ -18,7 +18,11 @@ export default function AdminPanel({ onLogout }) {
         totalSales: 0,
         totalOrders: 0,
         pendingOrders: 0,
-        totalProducts: 0
+        totalProducts: 0,
+        totalVisits: 0,
+        uniqueVisitors: 0,
+        todayVisits: 0,
+        todayUniqueVisitors: 0
     });
 
     // Form states
@@ -60,6 +64,21 @@ export default function AdminPanel({ onLogout }) {
                 .order("created_at", { ascending: false });
             setOrders(ordData || []);
 
+            // Load visits (safely inside try-catch to prevent failure if table does not exist yet)
+            let visitData = null;
+            try {
+                const { data: vData, error: vErr } = await supabase
+                    .from("visit_logs")
+                    .select("visitor_id, created_at");
+                if (!vErr) {
+                    visitData = vData;
+                } else {
+                    console.warn("Could not load visit_logs (table may not be created yet):", vErr);
+                }
+            } catch (vEx) {
+                console.warn("Error querying visit_logs table:", vEx);
+            }
+
             // Calculate stats
             if (ordData && prodData) {
                 let sales = 0;
@@ -72,11 +91,42 @@ export default function AdminPanel({ onLogout }) {
                         pending++;
                     }
                 });
+
+                // Calculate visitor stats
+                let totalVisits = 0;
+                let uniqueVisitors = 0;
+                let todayVisits = 0;
+                let todayUniqueVisitors = 0;
+
+                if (visitData) {
+                    totalVisits = visitData.length;
+                    
+                    // Unique visitors (all-time)
+                    const uniqueIds = new Set(visitData.map(v => v.visitor_id));
+                    uniqueVisitors = uniqueIds.size;
+
+                    // Today's visits (local day matching in YYYY-MM-DD format)
+                    const todayStr = new Date().toLocaleDateString('en-CA');
+                    const todayVisitsList = visitData.filter(v => {
+                        const vDate = new Date(v.created_at).toLocaleDateString('en-CA');
+                        return vDate === todayStr;
+                    });
+                    todayVisits = todayVisitsList.length;
+
+                    // Today's unique visitors
+                    const todayUniqueIds = new Set(todayVisitsList.map(v => v.visitor_id));
+                    todayUniqueVisitors = todayUniqueIds.size;
+                }
+
                 setStats({
                     totalSales: sales,
                     totalOrders: ordData.length,
                     pendingOrders: pending,
-                    totalProducts: prodData.length
+                    totalProducts: prodData.length,
+                    totalVisits,
+                    uniqueVisitors,
+                    todayVisits,
+                    todayUniqueVisitors
                 });
             }
         } catch (err) {
@@ -307,6 +357,38 @@ export default function AdminPanel({ onLogout }) {
                                 <div>
                                     <div className="stat-value">{stats.totalProducts}</div>
                                     <div className="stat-label">Faol Mahsulotlar</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <h3 style={{ marginTop: '2.5rem', marginBottom: '1.2rem', fontWeight: 600, fontSize: '1.2rem' }}>Tashriflar Statistikasi 📈</h3>
+                        <div className="stats-grid" style={{ marginBottom: '2rem' }}>
+                            <div className="stat-card">
+                                <div className="stat-icon" style={{ color: 'var(--primary-rose-dark)', background: 'var(--primary-rose-light)', fontSize: '1.5rem' }}>👥</div>
+                                <div>
+                                    <div className="stat-value">{stats.uniqueVisitors}</div>
+                                    <div className="stat-label">Noyob Tashriflar (All-time)</div>
+                                </div>
+                            </div>
+                            <div className="stat-card">
+                                <div className="stat-icon" style={{ color: '#2563EB', background: '#DBEAFE', fontSize: '1.5rem' }}>👁️</div>
+                                <div>
+                                    <div className="stat-value">{stats.totalVisits}</div>
+                                    <div className="stat-label">Jami Ko'rishlar (Sessiyalar)</div>
+                                </div>
+                            </div>
+                            <div className="stat-card">
+                                <div className="stat-icon" style={{ color: '#059669', background: '#D1FAE5', fontSize: '1.5rem' }}>📅</div>
+                                <div>
+                                    <div className="stat-value">{stats.todayUniqueVisitors}</div>
+                                    <div className="stat-label">Bugungi Noyob Tashriflar</div>
+                                </div>
+                            </div>
+                            <div className="stat-card">
+                                <div className="stat-icon" style={{ color: '#7C3AED', background: '#F3E8FF', fontSize: '1.5rem' }}>✨</div>
+                                <div>
+                                    <div className="stat-value">{stats.todayVisits}</div>
+                                    <div className="stat-label">Bugungi Jami Ko'rishlar</div>
                                 </div>
                             </div>
                         </div>

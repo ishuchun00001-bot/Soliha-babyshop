@@ -135,12 +135,17 @@ async def post_random_product_to_channel():
         webapp_url = os.getenv("WEBAPP_URL", "")
         site_link = webapp_url if webapp_url.startswith("https://") else "https://soliha-babyshop.vercel.app/" # fallback
         
-        size_str = f"\n📏 O'lchamlar: {prod['sizes']}" if prod.get("sizes") else ""
+        import html as py_html
+        name_esc = py_html.escape(prod['name'])
+        desc_esc = py_html.escape(prod.get('description') or 'Mavjud emas')
+        sizes_esc = py_html.escape(prod['sizes']) if prod.get("sizes") else ""
+        
+        size_str = f"\n📏 O'lchamlar: {sizes_esc}" if sizes_esc else ""
         
         caption_text = (
             f"🌟 {html.bold('DO\'KONIMIZDA YANGI MAHSULOT!')} 🌟\n\n"
-            f"👶👗 {html.bold(prod['name'])}\n"
-            f"📝 Tavsif: {prod.get('description') or 'Mavjud emas'}\n"
+            f"👶👗 {html.bold(name_esc)}\n"
+            f"📝 Tavsif: {desc_esc}\n"
             f"💵 Narxi: {html.bold(f'{prod['price']:,.0f}')} so'm{size_str}\n\n"
             f"🛍 Buyurtma berish va do'konga o'tish uchun quyidagi tugmadan foydalaning 👇"
         )
@@ -181,9 +186,9 @@ async def handle_admin_photo_upload(message: Message, state: FSMContext):
     photo = message.photo[-1]
     file_info = await bot.get_file(photo.file_id)
     
-    # Download file to memory bytes
+    # Download file to memory bytes with increased timeout
     file_io = io.BytesIO()
-    await bot.download(file_info, destination=file_io)
+    await bot.download(file_info, destination=file_io, timeout=120)
     image_bytes = file_io.getvalue()
     
     # Save image bytes in FSM Context
@@ -289,13 +294,18 @@ async def process_upload_sizes(message: Message, state: FSMContext):
         )
         
         if product:
+            import html as py_html
+            name_esc = py_html.escape(prod_name)
+            sizes_esc = py_html.escape(sizes) if sizes else '—'
+            desc_esc = py_html.escape(prod_desc)
             await progress_msg.edit_text(
                 f"✅ {html.bold('Mahsulot muvaffaqiyatli saqlandi!')}\n\n"
-                f"🛍️ Nomi: {prod_name}\n"
+                f"🛍️ Nomi: {name_esc}\n"
                 f"💵 Narxi: {price:,.0f} so'm\n"
-                f"📏 O'lchamlar: {sizes or '—'}\n"
-                f"📝 Tavsif: {prod_desc}\n\n"
-                f"Mahsulot Vercel saytida faol va kanalga reklama qilinadi."
+                f"📏 O'lchamlar: {sizes_esc}\n"
+                f"📝 Tavsif: {desc_esc}\n\n"
+                f"Mahsulot Vercel saytida faol va kanalga reklama qilinadi.",
+                parse_mode="HTML"
             )
             
             # Post to channel automatically
@@ -338,9 +348,9 @@ async def process_video_upload(message: Message, state: FSMContext):
         # Get video file info
         file_info = await bot.get_file(file_id)
         
-        # Download video to memory bytes
+        # Download video to memory bytes with increased timeout (180 seconds)
         file_io = io.BytesIO()
-        await bot.download(file_info, destination=file_io)
+        await bot.download(file_info, destination=file_io, timeout=180)
         video_bytes = file_io.getvalue()
         
         # Upload to Supabase Storage
@@ -379,13 +389,17 @@ async def process_video_caption(message: Message, state: FSMContext):
         
         await state.update_data(caption=caption, hashtags=hashtags)
         
+        import html as py_html
+        caption_esc = py_html.escape(caption)
+        hashtags_esc = py_html.escape(hashtags)
         await progress_msg.edit_text(
             f"✨ {html.bold('GPT TAVSIFI VA HESHTEGLARI:')}\n\n"
-            f"{caption}\n\n"
-            f"{html.italic(hashtags)}\n\n"
+            f"{caption_esc}\n\n"
+            f"{html.italic(hashtags_esc)}\n\n"
             f"📅 {html.bold('Ushbu video qachon joylashtirilsin?')}\n"
             f"Format: YYYY-MM-DD HH:MM (masalan: 2026-06-25 15:30)\n"
-            f"Yoki daqiqalarda: '15 daqiqadan keyin' deb yozing:"
+            f"Yoki daqiqalarda: '15 daqiqadan keyin' deb yozing:",
+            parse_mode="HTML"
         )
         await state.set_state(VideoUploadStates.waiting_for_time)
         
@@ -937,6 +951,14 @@ async def handle_gpt_chat(message: Message, state: FSMContext):
 
     if message.text.startswith("/") or message.text in ["🛍️ Katalog", "🌐 Mini Do'kon", "🛒 Savatcha", "📦 Buyurtmalarim", "📞 Biz bilan bog'lanish", "⚙️ Admin Panel Havolasi", "🎥 Video rejalashtirish"]:
         return
+        
+    # If the message is in a group or supergroup, only respond if the bot is mentioned or replied to
+    if message.chat.type in ["group", "supergroup"]:
+        bot_info = await bot.get_me()
+        is_mentioned = message.text and f"@{bot_info.username}" in message.text
+        is_reply_to_bot = message.reply_to_message and message.reply_to_message.from_user.id == bot_info.id
+        if not (is_mentioned or is_reply_to_bot):
+            return
         
     await bot.send_chat_action(message.chat.id, action="typing")
     

@@ -63,7 +63,13 @@ async def lifespan(app: FastAPI):
             try:
                 from backend.app.supabase_helper import supabase
                 if supabase:
-                    res = supabase.table("orders").select("id, status, telegram_id").eq("customer_notified", False).not_.is_("telegram_id", "null").execute()
+                    res = await asyncio.to_thread(
+                        lambda: supabase.table("orders")
+                        .select("id, status, telegram_id")
+                        .eq("customer_notified", False)
+                        .not_.is_("telegram_id", "null")
+                        .execute()
+                    )
                     if res.data:
                         for order in res.data:
                             order_id = order["id"]
@@ -87,7 +93,12 @@ async def lifespan(app: FastAPI):
                                 logger.error(f"Could not send bot message to customer {tg_id}: {tg_ex}")
                             
                             # Mark as notified in Supabase
-                            supabase.table("orders").update({"customer_notified": True}).eq("id", order_id).execute()
+                            await asyncio.to_thread(
+                                lambda: supabase.table("orders")
+                                .update({"customer_notified": True})
+                                .eq("id", order_id)
+                                .execute()
+                            )
             except Exception as e:
                 logger.error(f"Error in customer notification poll task: {e}")
             await asyncio.sleep(10) # check every 10 seconds
@@ -103,7 +114,12 @@ async def lifespan(app: FastAPI):
                 from backend.app.supabase_helper import supabase
                 from backend.app.bot import notify_admins_of_order
                 if supabase:
-                    res = supabase.table("orders").select("*, order_items(*)").eq("admin_notified", False).execute()
+                    res = await asyncio.to_thread(
+                        lambda: supabase.table("orders")
+                        .select("*, order_items(*)")
+                        .eq("admin_notified", False)
+                        .execute()
+                    )
                     if res.data:
                         for order in res.data:
                             order_id = order["id"]
@@ -111,7 +127,12 @@ async def lifespan(app: FastAPI):
                             logger.info(f"New order detected for admin notification: #{order_id}")
                             try:
                                 await notify_admins_of_order(order, items)
-                                supabase.table("orders").update({"admin_notified": True}).eq("id", order_id).execute()
+                                await asyncio.to_thread(
+                                    lambda: supabase.table("orders")
+                                    .update({"admin_notified": True})
+                                    .eq("id", order_id)
+                                    .execute()
+                                )
                                 logger.info(f"Admins notified for order #{order_id}")
                             except Exception as notify_ex:
                                 logger.error(f"Failed to notify admins for order #{order_id}: {notify_ex}")
@@ -130,7 +151,7 @@ async def lifespan(app: FastAPI):
                 from backend.app.supabase_helper import get_pending_scheduled_videos, mark_video_as_posted
                 from backend.app.bot import bot, TELEGRAM_CHANNEL_ID
                 
-                pending_videos = get_pending_scheduled_videos()
+                pending_videos = await asyncio.to_thread(get_pending_scheduled_videos)
                 for video in pending_videos:
                     video_id = video["id"]
                     file_id = video["video_url"]
@@ -151,10 +172,12 @@ async def lifespan(app: FastAPI):
                     if TELEGRAM_CHANNEL_ID:
                         logger.info(f"Posting scheduled video #{video_id} to Telegram channel...")
                         try:
+                            import html as py_html
+                            telegram_caption = py_html.escape(caption_text)
                             await bot.send_video(
                                 chat_id=TELEGRAM_CHANNEL_ID,
                                 video=file_id,
-                                caption=caption_text,
+                                caption=telegram_caption,
                                 parse_mode="HTML"
                             )
                             logger.info(f"Scheduled video #{video_id} successfully posted to Telegram channel.")
@@ -180,7 +203,7 @@ async def lifespan(app: FastAPI):
                     # Mark as posted if it was successfully sent to at least one platform (typically Telegram)
                     # to prevent duplicate triggers.
                     if telegram_success or instagram_success:
-                        mark_video_as_posted(video_id)
+                        await asyncio.to_thread(mark_video_as_posted, video_id)
                         logger.info(f"Scheduled video #{video_id} marked as completed in database.")
             except Exception as e:
                 logger.error(f"Error in scheduled video poll task (if 'scheduled_videos' table is missing, please add it): {e}")
