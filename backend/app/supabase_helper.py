@@ -401,3 +401,49 @@ def get_referral_leaderboard() -> List[Dict[str, Any]]:
         return []
 
 
+def get_bot_user_by_telegram_id(telegram_id: int) -> Optional[Dict[str, Any]]:
+    """Telegram ID orqali bot foydalanuvchisini qaytaradi."""
+    if not supabase: return None
+    try:
+        res = supabase.table("bot_users").select("*").eq("telegram_id", telegram_id).execute()
+        return res.data[0] if res.data else None
+    except Exception as e:
+        logger.error(f"Error fetching bot user {telegram_id}: {e}")
+        return None
+
+
+def channel_join_referral(telegram_id: int) -> Optional[int]:
+    """
+    Foydalanuvchi kanalga qo'shilganda chaqiriladi.
+    Agar bu foydalanuvchi referral orqali kelgan bo'lsa, referrer telegram_id qaytaradi.
+    """
+    if not supabase: return None
+    try:
+        res = supabase.table("bot_users").select("referred_by").eq("telegram_id", telegram_id).execute()
+        if res.data and res.data[0].get("referred_by"):
+            return res.data[0]["referred_by"]
+        return None
+    except Exception as e:
+        logger.error(f"Error in channel_join_referral for {telegram_id}: {e}")
+        return None
+
+
+def channel_leave_referral(telegram_id: int) -> Optional[int]:
+    """
+    Foydalanuvchi kanaldan chiqib ketganda chaqiriladi.
+    referred_by ni null qilib, referrer telegram_id qaytaradi (count kamayadi).
+    """
+    if not supabase: return None
+    try:
+        # Avval referrer_id ni ol
+        res = supabase.table("bot_users").select("referred_by").eq("telegram_id", telegram_id).execute()
+        if not res.data or not res.data[0].get("referred_by"):
+            return None
+        referrer_id = res.data[0]["referred_by"]
+        # referred_by ni null ga o'zgartir (count kamayadi)
+        supabase.table("bot_users").update({"referred_by": None}).eq("telegram_id", telegram_id).execute()
+        logger.info(f"User {telegram_id} left channel: referred_by set to null (was {referrer_id})")
+        return referrer_id
+    except Exception as e:
+        logger.error(f"Error in channel_leave_referral for {telegram_id}: {e}")
+        return None

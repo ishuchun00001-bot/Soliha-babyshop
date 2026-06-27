@@ -38,7 +38,13 @@ async def lifespan(app: FastAPI):
     logger.info("Starting Telegram Bot...")
     # Delete webhook to prevent conflict with polling
     await bot.delete_webhook(drop_pending_updates=True)
-    polling_task = asyncio.create_task(dp.start_polling(bot))
+    # chat_member eventlarini qabul qilish uchun allowed_updates ga qo'shamiz
+    polling_task = asyncio.create_task(
+        dp.start_polling(
+            bot,
+            allowed_updates=["message", "callback_query", "chat_member", "my_chat_member"]
+        )
+    )
     
     # 3. Startup: Start Channel Post Scheduler (daily)
     from backend.app.bot import post_random_product_to_channel

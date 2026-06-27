@@ -7,9 +7,9 @@ from aiogram import Bot, Dispatcher, Router, html, F
 from aiogram.fsm.context import FSMContext
 from aiogram.types import (
     Message, ReplyKeyboardMarkup, KeyboardButton, InlineKeyboardMarkup, 
-    InlineKeyboardButton, CallbackQuery, WebAppInfo
+    InlineKeyboardButton, CallbackQuery, WebAppInfo, ChatMemberUpdated
 )
-from aiogram.filters import Command
+from aiogram.filters import Command, ChatMemberUpdatedFilter, JOIN_TRANSITION, LEAVE_TRANSITION
 from aiogram.fsm.state import State, StatesGroup
 from aiogram.fsm.storage.memory import MemoryStorage
 
@@ -563,50 +563,305 @@ async def cmd_odam(message: Message):
     user = message.from_user
     telegram_id = user.id
     username = user.username
-    
+
     # Register user if not already present
     supabase_helper.register_bot_user(
         telegram_id=telegram_id,
         username=username,
         first_name=user.first_name
     )
-    
+
     # Get bot username to generate referral link
     bot_info = await bot.get_me()
     bot_username = bot_info.username
     ref_link = f"https://t.me/{bot_username}?start=ref_{telegram_id}"
-    
+
     # Get user's referral count
     ref_count = supabase_helper.get_referral_count(telegram_id)
+
+    # Get referral leaderboard (top 4)
+    leaderboard = supabase_helper.get_referral_leaderboard()
+
+    # Medal emojilari
+    medals = ["🥇", "🥈", "🥉", "🏅"]
+
+    # Format leaderboard text with medals
+    leaderboard_text = ""
+    user_rank = None
+    for idx, item in enumerate(leaderboard, 1):
+        medal = medals[idx - 1] if idx <= len(medals) else f"{idx}."
+        name = item["first_name"]
+        import html as py_html
+        name_esc = py_html.escape(name)
+        uname = f" (@{py_html.escape(item['username'])})" if item.get("username") else ""
+        leaderboard_text += f"{medal} <b>{name_esc}</b>{uname} — <b>{item['count']}</b> ta\n"
+        if item["telegram_id"] == telegram_id:
+            user_rank = idx
+
+    if not leaderboard_text:
+        leaderboard_text = "🔔 Hozircha faol ishtirokchilar yo'q.\nBirinchi bo'lib taklif yuboring! 🚀"
+
+    # Foydalanuvchi o'z o'rnini ko'rish
+    if user_rank:
+        rank_text = f"\n🎯 <b>Sizning o'rningiz: {medals[user_rank-1] if user_rank <= 4 else f'{user_rank}-o\'rin'}</b>\n"
+    elif ref_count > 0:
+        rank_text = f"\n📊 Siz top-4 dan tashqaridasiz, lekin {ref_count} ta taklif qildingiz!\n"
+    else:
+        rank_text = "\n💡 Hali hech kim taklif qilmadingiz. Boshlang!\n"
+
+    # Progress bar
+    max_ref = leaderboard[0]["count"] if leaderboard else 10
+    bar_total = 10
+    bar_filled = min(bar_total, round((ref_count / max(max_ref, 1)) * bar_total))
+    progress_bar = "🟩" * bar_filled + "⬜" * (bar_total - bar_filled)
+
+    response_text = (
+        f"🎁 <b>SOLIHA BABY SHOP AKSIYASI!</b> 🎁\n"
+        f"━━━━━━━━━━━━━━━━━━━━━\n\n"
+        f"👥 Do'stlarni taklif qiling va <b>qimmatbaho sovg'alarga</b> ega bo'ling!\n\n"
+        f"╔══════════════════════╗\n"
+        f"       🔗 <b>SIZNING HAVOLANGIZ</b> 🔗\n"
+        f"<code>{ref_link}</code>\n"
+        f"  👆 <i>Bosib nusxa oling va yuboring!</i>\n"
+        f"╚══════════════════════╝\n\n"
+        f"📊 <b>Sizning natijangiz:</b>\n"
+        f"{progress_bar}\n"
+        f"👤 Siz <b>{ref_count} ta</b> odam taklif qildingiz!"
+        f"{rank_text}\n"
+        f"━━━━━━━━━━━━━━━━━━━━━\n"
+        f"🏆 <b>TOP-4 REYTING:</b>\n\n"
+        f"{leaderboard_text}\n"
+        f"━━━━━━━━━━━━━━━━━━━━━\n"
+        f"<i>📤 Havolani do'stlaringizga yuboring!\n"
+        f"Kim ko'p odam taklif qilsa — <b>g'olib bo'ladi!</b> 🏆</i>"
+    )
+
+    # Ulashish tugmasi
+    share_text = "Soliha Baby Shop aksiyasida ishtirok etaman! Siz ham qo'shiling 👶🎁"
+    share_url = f"https://t.me/share/url?url={ref_link}&text={share_text}"
+
+    kb = InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(text="📤 Do'stlarga ulashish", url=share_url)],
+        [InlineKeyboardButton(text="🔄 Yangilash", callback_data=f"refresh_ref_{telegram_id}")]
+    ])
+
+    # Guruhda bo'lsa — shaxsiy DM yuborish, guruh xabarini o'chirish
+    if message.chat.type != "private":
+        try:
+            # Foydalanuvchiga shaxsiy DM yuborish
+            await bot.send_message(
+                chat_id=telegram_id,
+                text=response_text,
+                parse_mode="HTML",
+                reply_markup=kb
+            )
+            # Guruhdan /odam xabarini o'chirish (boshqalar ko'rmasin)
+            try:
+                await message.delete()
+            except Exception:
+                pass
+            # Guruhda faqat shu odamga ko'rinadigan bildirishnoma yo'q (Telegram cheklovlar)
+            # Shuning uchun hech narsa yozmaymiz guruhga
+        except Exception as e:
+            logger.error(f"Failed to send DM to {telegram_id}: {e}")
+            # Agar DM yuborib bo'lmasa (bot bilan suhbat boshlanmagan) — guruhda xabar
+            try:
+                await message.reply(
+                    f"📩 <b>{user.first_name}</b>, aksiya ma'lumotlari shaxsiy xabarda yuborildi!\n"
+                    f"Agar kelmagan bo'lsa, avval botga <b>/start</b> yuboring 👇\n"
+                    f"<a href='https://t.me/{bot_username}'>@{bot_username}</a>",
+                    parse_mode="HTML"
+                )
+            except Exception:
+                pass
+    else:
+        # Private chat — to'g'ridan-to'g'ri javob berish
+        await message.answer(response_text, parse_mode="HTML", reply_markup=kb)
+
+
+@router.callback_query(F.data.startswith("refresh_ref_"))
+async def refresh_referral(callback: CallbackQuery):
+    """Leaderboardni yangilash tugmasi"""
+    user = callback.from_user
+    telegram_id = user.id
+    username = user.username
     
-    # Get referral leaderboard
+    bot_info = await bot.get_me()
+    bot_username = bot_info.username
+    ref_link = f"https://t.me/{bot_username}?start=ref_{telegram_id}"
+    
+    ref_count = supabase_helper.get_referral_count(telegram_id)
     leaderboard = supabase_helper.get_referral_leaderboard()
     
-    # Format leaderboard text
+    medals = ["🥇", "🥈", "🥉", "🏅"]
+    
     leaderboard_text = ""
+    user_rank = None
     for idx, item in enumerate(leaderboard, 1):
+        medal = medals[idx - 1] if idx <= len(medals) else f"{idx}."
         name = item["first_name"]
-        uname = f" (@{item['username']})" if item.get("username") else ""
-        leaderboard_text += f"{idx}-o'rin: {html.bold(name)}{uname} — {item['count']} ta\n"
-        
+        import html as py_html
+        name_esc = py_html.escape(name)
+        uname = f" (@{py_html.escape(item['username'])})" if item.get("username") else ""
+        leaderboard_text += f"{medal} <b>{name_esc}</b>{uname} — <b>{item['count']}</b> ta\n"
+        if item["telegram_id"] == telegram_id:
+            user_rank = idx
+    
     if not leaderboard_text:
-        leaderboard_text = "Hozircha faol ishtirokchilar yo'q."
-        
+        leaderboard_text = "🔔 Hozircha faol ishtirokchilar yo'q.\nBirinchi bo'lib taklif yuboring! 🚀"
+    
+    if user_rank:
+        rank_text = f"\n🎯 <b>Sizning o'rningiz: {medals[user_rank-1] if user_rank <= 4 else f'{user_rank}-o\'rin'}</b>\n"
+    elif ref_count > 0:
+        rank_text = f"\n📊 Siz top-4 dan tashqaridasiz, lekin {ref_count} ta taklif qildingiz!\n"
+    else:
+        rank_text = "\n💡 Hali hech kim taklif qilmadingiz. Boshlang!\n"
+    
+    max_ref = leaderboard[0]["count"] if leaderboard else 10
+    bar_total = 10
+    bar_filled = min(bar_total, round((ref_count / max(max_ref, 1)) * bar_total))
+    progress_bar = "🟩" * bar_filled + "⬜" * (bar_total - bar_filled)
+    
     response_text = (
-        f"🎁 <b>SOLIHA BABY SHOP AKSIYASI!</b> 🎁\n\n"
-        f"Do'stlarni taklif qiling va qimmatbaho sovg'alarga ega bo'ling!\n\n"
-        f"🔗 <b>Sizning taklif havolangiz:</b>\n"
-        f"<code>{ref_link}</code>\n\n"
-        f"👥 <b>Siz taklif qilgan odamlar soni:</b> {ref_count} ta\n\n"
-        f"🏆 <b>Top 4 ta eng faol ishtirokchilar:</b>\n"
-        f"{leaderboard_text}\n\n"
-        f"<i>Ushbu havolani do'stlaringiz va yaqinlaringizga yuboring. Kim ko'p odam taklif qilsa, g'olib bo'ladi!</i>"
+        f"🎁 <b>SOLIHA BABY SHOP AKSIYASI!</b> 🎁\n"
+        f"━━━━━━━━━━━━━━━━━━━━━\n\n"
+        f"👥 Do'stlarni taklif qiling va <b>qimmatbaho sovg'alarga</b> ega bo'ling!\n\n"
+        f"╔══════════════════════╗\n"
+        f"       🔗 <b>SIZNING HAVOLANGIZ</b> 🔗\n"
+        f"<code>{ref_link}</code>\n"
+        f"  👆 <i>Bosib nusxa oling va yuboring!</i>\n"
+        f"╚══════════════════════╝\n\n"
+        f"📊 <b>Sizning natijangiz:</b>\n"
+        f"{progress_bar}\n"
+        f"👤 Siz <b>{ref_count} ta</b> odam taklif qildingiz!"
+        f"{rank_text}\n"
+        f"━━━━━━━━━━━━━━━━━━━━━\n"
+        f"🏆 <b>TOP-4 REYTING:</b>\n\n"
+        f"{leaderboard_text}\n"
+        f"━━━━━━━━━━━━━━━━━━━━━\n"
+        f"<i>📤 Havolani do'stlaringizga yuboring!\n"
+        f"Kim ko'p odam taklif qilsa — <b>g'olib bo'ladi!</b> 🏆</i>"
     )
     
-    await message.answer(response_text, parse_mode="HTML")
+    share_text = f"Soliha Baby Shop aksiyasida ishtirok etaman! Siz ham qo'shiling 👶🎁"
+    share_url = f"https://t.me/share/url?url={ref_link}&text={share_text}"
+    
+    kb = InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(text="📤 Do'stlarga ulashish", url=share_url)],
+        [InlineKeyboardButton(text="🔄 Yangilash", callback_data=f"refresh_ref_{telegram_id}")]
+    ])
+    
+    try:
+        await callback.message.edit_text(response_text, parse_mode="HTML", reply_markup=kb)
+        await callback.answer("✅ Ma'lumotlar yangilandi!")
+    except Exception:
+        await callback.answer("Ma'lumotlar allaqachon yangi!")
+
+
+# ─── Kanal a'zoligini kuzatish (Join/Leave) ───────────────────────────────────
+
+@router.chat_member(ChatMemberUpdatedFilter(member_status_changed=JOIN_TRANSITION))
+async def on_channel_join(event: ChatMemberUpdated):
+    """Foydalanuvchi kanalga qo'shilganda referral hisoblanadi."""
+    # Faqat kanalimiz uchun tekshirish
+    channel_id = TELEGRAM_CHANNEL_ID.lstrip("@") if TELEGRAM_CHANNEL_ID else ""
+    chat_username = event.chat.username or ""
+    chat_id_str = str(event.chat.id)
+    
+    # Kanal tekshiruvi (username yoki ID bo'yicha)
+    if channel_id and channel_id.lower() != chat_username.lower() and channel_id != chat_id_str:
+        return
+    
+    new_member = event.new_chat_member.user
+    if new_member.is_bot:
+        return
+    
+    telegram_id = new_member.id
+    
+    # Foydalanuvchi botga ro'yxatdan o'tganmi tekshir
+    user_data = supabase_helper.get_bot_user_by_telegram_id(telegram_id)
+    if not user_data:
+        # Bot orqali kelmagan odamlar uchun - oddiy ro'yxatga olish
+        supabase_helper.register_bot_user(
+            telegram_id=telegram_id,
+            username=new_member.username,
+            first_name=new_member.first_name or "Foydalanuvchi"
+        )
+        logger.info(f"New channel member registered (no referral): {telegram_id}")
+        return
+    
+    # Referrer'ni tekshir
+    referrer_id = supabase_helper.channel_join_referral(telegram_id)
+    if referrer_id:
+        logger.info(f"User {telegram_id} joined channel via referral from {referrer_id}")
+        # Referrer'ga bildirishnoma yuborish
+        try:
+            first_name = new_member.first_name or "Foydalanuvchi"
+            import html as py_html
+            name_esc = py_html.escape(first_name)
+            
+            # Referrer'ning yangi sonini ol
+            new_count = supabase_helper.get_referral_count(referrer_id)
+            
+            await bot.send_message(
+                chat_id=referrer_id,
+                text=(
+                    f"🎉 <b>Yangi a'zo!</b>\n\n"
+                    f"<b>{name_esc}</b> sizning havolangiz orqali kanalga qo'shildi!\n"
+                    f"📊 Sizning umumiy natijangiz: <b>{new_count} ta</b> 🏆"
+                ),
+                parse_mode="HTML"
+            )
+        except Exception as e:
+            logger.error(f"Failed to notify referrer {referrer_id} on join: {e}")
+
+
+@router.chat_member(ChatMemberUpdatedFilter(member_status_changed=LEAVE_TRANSITION))
+async def on_channel_leave(event: ChatMemberUpdated):
+    """Foydalanuvchi kanaldan chiqib ketganda referral kamayadi."""
+    channel_id = TELEGRAM_CHANNEL_ID.lstrip("@") if TELEGRAM_CHANNEL_ID else ""
+    chat_username = event.chat.username or ""
+    chat_id_str = str(event.chat.id)
+    
+    if channel_id and channel_id.lower() != chat_username.lower() and channel_id != chat_id_str:
+        return
+    
+    old_member = event.new_chat_member.user
+    if old_member.is_bot:
+        return
+    
+    telegram_id = old_member.id
+    
+    referrer_id = supabase_helper.channel_leave_referral(telegram_id)
+    if referrer_id:
+        logger.info(f"User {telegram_id} left channel, was referred by {referrer_id}")
+        # Referrer'ga bildirishnoma yuborish (referred_by allaqachon null, count kamaygan)
+        try:
+            first_name = old_member.first_name or "Foydalanuvchi"
+            import html as py_html
+            name_esc = py_html.escape(first_name)
+            
+            # Yangilangan count (kamaygan holda)
+            new_count = supabase_helper.get_referral_count(referrer_id)
+            
+            await bot.send_message(
+                chat_id=referrer_id,
+                text=(
+                    f"😔 <b>A'zo chiqib ketdi</b>\n\n"
+                    f"<b>{name_esc}</b> kanaldan chiqib ketdi.\n"
+                    f"📊 Sizning joriy natijangiz: <b>{new_count} ta</b>"
+                ),
+                parse_mode="HTML"
+            )
+        except Exception as e:
+            logger.error(f"Failed to notify referrer {referrer_id} on leave: {e}")
+
+
+# ──────────────────────────────────────────────────────────────────────────────
 
 @router.message(Command("post"))
 async def cmd_post_to_channel(message: Message):
+
     user = message.from_user
     username = user.username
     is_admin = username and username.lower() in [u.lower() for u in ADMIN_USERNAMES]
