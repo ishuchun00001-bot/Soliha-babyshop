@@ -52,11 +52,17 @@ def get_main_keyboard(is_admin=False):
     if webapp_url.startswith("https://"):
         first_row.append(KeyboardButton(text="🌐 Mini Do'kon", web_app=WebAppInfo(url=webapp_url)))
         
-    kb = [
-        first_row,
-        [KeyboardButton(text="🎥 Video rejalashtirish")],
-        [KeyboardButton(text="⚙️ Admin Panel Havolasi")]
-    ]
+    if is_admin:
+        kb = [
+            first_row,
+            [KeyboardButton(text="🎁 Aksiya"), KeyboardButton(text="🎥 Video rejalashtirish")],
+            [KeyboardButton(text="⚙️ Admin Panel Havolasi")]
+        ]
+    else:
+        kb = [
+            first_row,
+            [KeyboardButton(text="🎁 Aksiya")]
+        ]
     return ReplyKeyboardMarkup(keyboard=kb, resize_keyboard=True)
 
 def get_categories_keyboard():
@@ -484,34 +490,59 @@ async def cmd_start(message: Message, state: FSMContext):
         is_admin = True
         logger.info(f"Admin registered: {username} ({message.from_user.id})")
             
-    # Deep link arguments e.g. /start prod_12
+    # Deep link arguments e.g. /start prod_12 or /start ref_12345
     args = message.text.split()
-    if len(args) > 1 and args[1].startswith("prod_"):
-        try:
-            prod_id = int(args[1].split("_")[1])
-            prod = supabase_helper.get_product(prod_id)
-            if prod and prod.get("is_active", True):
-                size_str = f"\n📏 O'lchamlar: {prod['sizes']}" if prod.get("sizes") else ""
-                prod_text = (
-                    f"👶👗 {html.bold(prod['name'])}\n"
-                    f"📝 Tavsif: {prod.get('description') or 'Mavjud emas'}\n"
-                    f"💵 Narxi: {prod['price']:,.0f} so'm{size_str}\n"
-                    f"📦 Omborda: {prod['stock']} dona\n"
-                )
-                
-                kb = InlineKeyboardMarkup(inline_keyboard=[
-                    [InlineKeyboardButton(text="🛒 Savatga qo'shish", callback_data=f"add_{prod['id']}")]
-                ])
-                
-                await message.answer(f"Siz tanlagan mahsulot: \n\n")
-                if prod.get("image_url"):
-                    await message.answer_photo(photo=prod["image_url"], caption=prod_text, parse_mode="HTML", reply_markup=kb)
+    referred_by_id = None
+    if len(args) > 1:
+        if args[1].startswith("prod_"):
+            try:
+                prod_id = int(args[1].split("_")[1])
+                prod = supabase_helper.get_product(prod_id)
+                if prod and prod.get("is_active", True):
+                    size_str = f"\n📏 O'lchamlar: {prod['sizes']}" if prod.get("sizes") else ""
+                    prod_text = (
+                        f"👶👗 {html.bold(prod['name'])}\n"
+                        f"📝 Tavsif: {prod.get('description') or 'Mavjud emas'}\n"
+                        f"💵 Narxi: {prod['price']:,.0f} so'm{size_str}\n"
+                        f"📦 Omborda: {prod['stock']} dona\n"
+                    )
+                    
+                    kb = InlineKeyboardMarkup(inline_keyboard=[
+                        [InlineKeyboardButton(text="🛒 Savatga qo'shish", callback_data=f"add_{prod['id']}")]
+                    ])
+                    
+                    await message.answer(f"Siz tanlagan mahsulot: \n\n")
+                    if prod.get("image_url"):
+                        await message.answer_photo(photo=prod["image_url"], caption=prod_text, parse_mode="HTML", reply_markup=kb)
+                    else:
+                        await message.answer(prod_text, parse_mode="HTML", reply_markup=kb)
                 else:
-                    await message.answer(prod_text, parse_mode="HTML", reply_markup=kb)
-            else:
-                await message.answer("Kechirasiz, mahsulot topilmadi yoki sotuvda tugagan.")
-        except Exception as e:
-            logger.error(f"Error handling deep link: {e}")
+                    await message.answer("Kechirasiz, mahsulot topilmadi yoki sotuvda tugagan.")
+            except Exception as e:
+                logger.error(f"Error handling deep link: {e}")
+        elif args[1].startswith("ref_"):
+            try:
+                referred_by_id = int(args[1].split("_")[1])
+            except Exception as e:
+                logger.error(f"Error parsing ref link ID: {e}")
+
+    # Register user in database and check if it's a new referral
+    referrer_id = supabase_helper.register_bot_user(
+        telegram_id=user.id,
+        username=username,
+        first_name=user.first_name,
+        referred_by=referred_by_id
+    )
+    
+    if referrer_id:
+        try:
+            await bot.send_message(
+                chat_id=referrer_id,
+                text=f"🎉 <b>Yangi taklif!</b>\n\nSizning taklif havolangiz orqali <b>{html.escape(user.first_name)}</b> botga kirdi! Aksiya doirasida sizga +1 taklif balli qo'shildi.",
+                parse_mode="HTML"
+            )
+        except Exception as ref_err:
+            logger.error(f"Failed to notify referrer {referrer_id}: {ref_err}")
             
     welcome_text = (
         f"Salom, {html.bold(user.first_name)}! \n"
@@ -524,6 +555,55 @@ async def cmd_start(message: Message, state: FSMContext):
         welcome_text += "\n\n🔑 Siz admin sifatida tizimga kirdingiz! Rasm va captionda narxini yozib yuborib do'konga yangi mahsulot qo'shishingiz mumkin."
         
     await message.answer(welcome_text, parse_mode="HTML", reply_markup=get_main_keyboard(is_admin))
+
+
+@router.message(Command("odam"))
+@router.message(F.text == "🎁 Aksiya")
+async def cmd_odam(message: Message):
+    user = message.from_user
+    telegram_id = user.id
+    username = user.username
+    
+    # Register user if not already present
+    supabase_helper.register_bot_user(
+        telegram_id=telegram_id,
+        username=username,
+        first_name=user.first_name
+    )
+    
+    # Get bot username to generate referral link
+    bot_info = await bot.get_me()
+    bot_username = bot_info.username
+    ref_link = f"https://t.me/{bot_username}?start=ref_{telegram_id}"
+    
+    # Get user's referral count
+    ref_count = supabase_helper.get_referral_count(telegram_id)
+    
+    # Get referral leaderboard
+    leaderboard = supabase_helper.get_referral_leaderboard()
+    
+    # Format leaderboard text
+    leaderboard_text = ""
+    for idx, item in enumerate(leaderboard, 1):
+        name = item["first_name"]
+        uname = f" (@{item['username']})" if item.get("username") else ""
+        leaderboard_text += f"{idx}-o'rin: {html.bold(name)}{uname} — {item['count']} ta\n"
+        
+    if not leaderboard_text:
+        leaderboard_text = "Hozircha faol ishtirokchilar yo'q."
+        
+    response_text = (
+        f"🎁 <b>SOLIHA BABY SHOP AKSIYASI!</b> 🎁\n\n"
+        f"Do'stlarni taklif qiling va qimmatbaho sovg'alarga ega bo'ling!\n\n"
+        f"🔗 <b>Sizning taklif havolangiz:</b>\n"
+        f"<code>{ref_link}</code>\n\n"
+        f"👥 <b>Siz taklif qilgan odamlar soni:</b> {ref_count} ta\n\n"
+        f"🏆 <b>Top 4 ta eng faol ishtirokchilar:</b>\n"
+        f"{leaderboard_text}\n\n"
+        f"<i>Ushbu havolani do'stlaringiz va yaqinlaringizga yuboring. Kim ko'p odam taklif qilsa, g'olib bo'ladi!</i>"
+    )
+    
+    await message.answer(response_text, parse_mode="HTML")
 
 @router.message(Command("post"))
 async def cmd_post_to_channel(message: Message):

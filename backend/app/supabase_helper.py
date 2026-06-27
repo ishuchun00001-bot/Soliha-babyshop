@@ -311,3 +311,93 @@ def mark_video_as_posted(video_id: int) -> bool:
         logger.error(f"Error marking video as posted: {e}")
         return False
 
+
+def register_bot_user(telegram_id: int, username: Optional[str], first_name: str, referred_by: Optional[int] = None) -> Optional[int]:
+    """
+    Registers a new bot user or updates existing user details.
+    Returns the referrer_id if this was a new referral, otherwise None.
+    """
+    if not supabase: return None
+    try:
+        # Check if user already exists
+        res = supabase.table("bot_users").select("*").eq("telegram_id", telegram_id).execute()
+        if res.data:
+            # User exists, update username and first_name
+            supabase.table("bot_users").update({
+                "username": username,
+                "first_name": first_name
+            }).eq("telegram_id", telegram_id).execute()
+            return None
+        else:
+            # New user! Check if referred_by is valid
+            actual_referrer = None
+            if referred_by and referred_by != telegram_id:
+                actual_referrer = referred_by
+            
+            supabase.table("bot_users").insert({
+                "telegram_id": telegram_id,
+                "username": username,
+                "first_name": first_name,
+                "referred_by": actual_referrer
+            }).execute()
+            
+            return actual_referrer
+    except Exception as e:
+        logger.error(f"Error registering bot user: {e}")
+        return None
+
+
+def get_referral_count(telegram_id: int) -> int:
+    """
+    Returns the number of users referred by this telegram_id.
+    """
+    if not supabase: return 0
+    try:
+        res = supabase.table("bot_users").select("telegram_id", count="exact").eq("referred_by", telegram_id).execute()
+        return res.count if res.count is not None else len(res.data or [])
+    except Exception as e:
+        logger.error(f"Error getting referral count: {e}")
+        return 0
+
+
+def get_referral_leaderboard() -> List[Dict[str, Any]]:
+    """
+    Returns the top 4 referrers and their referral counts.
+    """
+    if not supabase: return []
+    try:
+        # Fetch all users who have a referrer
+        res = supabase.table("bot_users").select("telegram_id, referred_by").not_.is_("referred_by", "null").execute()
+        referrals = res.data or []
+        
+        # Count referrals per referrer
+        counts = {}
+        for ref in referrals:
+            r_id = ref["referred_by"]
+            counts[r_id] = counts.get(r_id, 0) + 1
+            
+        # Sort and take top 4
+        sorted_referrers = sorted(counts.items(), key=lambda x: x[1], reverse=True)[:4]
+        if not sorted_referrers:
+            return []
+            
+        # Fetch user details for these top referrers
+        referrer_ids = [r[0] for r in sorted_referrers]
+        res_users = supabase.table("bot_users").select("telegram_id, username, first_name").in_("telegram_id", referrer_ids).execute()
+        users_map = {u["telegram_id"]: u for u in (res_users.data or [])}
+        
+        leaderboard = []
+        for r_id, count in sorted_referrers:
+            user_info = users_map.get(r_id)
+            leaderboard.append({
+                "telegram_id": r_id,
+                "username": user_info.get("username") if user_info else None,
+                "first_name": user_info.get("first_name") if user_info else "Ishtirokchi",
+                "count": count
+            })
+        return leaderboard
+    except Exception as e:
+        logger.error(f"Error getting leaderboard: {e}")
+        return []
+
+
