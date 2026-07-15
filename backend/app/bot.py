@@ -15,7 +15,7 @@ from aiogram.fsm.storage.memory import MemoryStorage
 
 from backend.app.config import TELEGRAM_BOT_TOKEN, ADMIN_USERNAMES, TELEGRAM_CHANNEL_ID
 from backend.app import supabase_helper
-from backend.app.openai_helper import get_gpt_response, analyze_product_image, generate_video_post_caption
+from backend.app.openai_helper import get_gpt_response, analyze_product_image, generate_video_post_caption, generate_dalle_image, create_infographics
 
 # Set up logging
 logging.basicConfig(level=logging.INFO)
@@ -275,20 +275,42 @@ async def process_upload_sizes(message: Message, state: FSMContext):
     progress_msg = await message.answer("🪄 AI rasmni tahlil qilmoqda va mahsulotni saytga joylashtirmoqda. Iltimos kuting...")
     
     try:
-        # 1. Upload to Supabase Storage
-        public_url = await supabase_helper.upload_product_image(image_bytes, file_name, "image/jpeg")
+        # 1. Call OpenAI Vision to get Name and Description from original image first
+        await progress_msg.edit_text("🔍 AI rasmdagi kiyim ma'lumotlarini o'rganmoqda...")
+        ai_data = await analyze_product_image(image_bytes, "image/jpeg")
+        prod_name = ai_data.get("name", "Yangi kiyim")
+        prod_desc = ai_data.get("description", "Tavsif mavjud emas")
+        prod_stock = ai_data.get("stock", 10)
+        
+        # 2. Generate premium studio image with DALL-E 3
+        await progress_msg.edit_text("🎨 AI professional studio sifatidagi katalog rasmini chizmoqda (DALL-E 3)...")
+        dalle_prompt = (
+            f"A premium, professional studio catalog photo of a baby/child clothing item: {prod_name}. "
+            f"Description: {prod_desc}. "
+            f"Perfect lighting, soft baby boutique studio background, highly detailed fabric, commercial fashion catalog shot."
+        )
+        premium_bytes = await generate_dalle_image(dalle_prompt)
+        
+        # Use premium DALL-E image, fallback to original if DALL-E failed
+        final_bytes = premium_bytes if premium_bytes else image_bytes
+        
+        # 3. Create Infographics (add title, brand name, price and sizes overlay)
+        await progress_msg.edit_text("✨ Mahsulot infografikasi (brending, narx va o'lchamlar) chizilmoqda...")
+        try:
+            infographic_bytes = create_infographics(final_bytes, prod_name, price, sizes)
+        except Exception as info_err:
+            logger.error(f"Failed to generate infographics: {info_err}")
+            infographic_bytes = final_bytes
+            
+        # 4. Upload infographic image to Supabase Storage
+        await progress_msg.edit_text("📤 Saytga yuklanmoqda...")
+        public_url = await supabase_helper.upload_product_image(infographic_bytes, file_name, "image/jpeg")
         if not public_url:
             await progress_msg.edit_text("❌ Rasmni yuklashda xatolik yuz berdi. Supabase Storage sozlamalarini tekshiring.")
             await state.clear()
             return
             
-        # 2. Call OpenAI Vision to get Name and Description
-        ai_data = await analyze_product_image(image_bytes, "image/jpeg")
-        prod_name = ai_data.get("name", "Yangi mahsulot")
-        prod_desc = ai_data.get("description", "Tavsif mavjud emas")
-        prod_stock = ai_data.get("stock", 10)
-        
-        # 3. Create Product in Supabase Database
+        # 5. Create Product in Supabase Database
         product = supabase_helper.create_product(
             name=prod_name,
             description=prod_desc,

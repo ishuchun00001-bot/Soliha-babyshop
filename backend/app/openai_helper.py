@@ -335,3 +335,97 @@ async def generate_video_post_caption(brief_info: str) -> dict:
             "hashtags": "#mustafakids #bolalarkiyimi #mk_mustafa_kids"
         }
 
+
+async def generate_dalle_image(prompt: str) -> Optional[bytes]:
+    if not client:
+        logger.error("OpenAI client not configured for DALL-E.")
+        return None
+    try:
+        response = await client.images.generate(
+            model="dall-e-3",
+            prompt=prompt,
+            size="1024x1024",
+            quality="hd",
+            n=1
+        )
+        url = response.data[0].url
+        import httpx
+        async with httpx.AsyncClient() as http_client:
+            img_res = await http_client.get(url, timeout=60)
+            if img_res.status_code == 200:
+                logger.info("Dalle image generated and downloaded successfully.")
+                return img_res.content
+    except Exception as e:
+        logger.error(f"Error generating DALL-E image: {e}")
+    return None
+
+
+def create_infographics(image_bytes: bytes, title: str, price: float, sizes: str) -> bytes:
+    import io
+    from PIL import Image, ImageDraw, ImageFont
+    
+    image = Image.open(io.BytesIO(image_bytes))
+    
+    # Ensure it's RGB
+    if image.mode != "RGB":
+        image = image.convert("RGB")
+        
+    image = image.resize((1024, 1024), Image.Resampling.LANCZOS)
+    
+    # Create transparent drawing layer
+    draw_layer = Image.new("RGBA", image.size, (0, 0, 0, 0))
+    draw = ImageDraw.Draw(draw_layer)
+    
+    try:
+        font_title = ImageFont.truetype("C:/Windows/Fonts/segoeui.ttf", 36)
+        font_price = ImageFont.truetype("C:/Windows/Fonts/segoeuib.ttf", 44)
+        font_brand = ImageFont.truetype("C:/Windows/Fonts/segoeuib.ttf", 26)
+        font_sizes = ImageFont.truetype("C:/Windows/Fonts/segoeui.ttf", 24)
+    except Exception:
+        try:
+            font_title = ImageFont.truetype("C:/Windows/Fonts/arial.ttf", 36)
+            font_price = ImageFont.truetype("C:/Windows/Fonts/arialbd.ttf", 44)
+            font_brand = ImageFont.truetype("C:/Windows/Fonts/arialbd.ttf", 26)
+            font_sizes = ImageFont.truetype("C:/Windows/Fonts/arial.ttf", 24)
+        except Exception:
+            font_title = ImageFont.load_default()
+            font_price = ImageFont.load_default()
+            font_brand = ImageFont.load_default()
+            font_sizes = ImageFont.load_default()
+            
+    # Bottom banner box (semi-transparent elegant white)
+    draw.rectangle([0, 850, 1024, 1024], fill=(255, 255, 255, 220))
+    
+    # Gold/rose border separator line on top of bottom banner
+    draw.line([0, 850, 1024, 850], fill=(219, 148, 153, 255), width=4)
+    
+    # Sizes badge on top-right corner
+    if sizes:
+        size_txt = f"Razmer: {sizes}"
+        bbox = draw.textbbox((0, 0), size_txt, font=font_sizes)
+        text_w = bbox[2] - bbox[0]
+        text_h = bbox[3] - bbox[1]
+        badge_w = text_w + 30
+        badge_h = text_h + 16
+        draw.rounded_rectangle([1024 - badge_w - 40, 40, 1024 - 40, 40 + badge_h], radius=15, fill=(219, 148, 153, 240))
+        draw.text((1024 - badge_w - 25, 48), size_txt, fill=(255, 255, 255, 255), font=font_sizes)
+        
+    # Draw Mustafa Kids branding on the bottom banner
+    draw.text((40, 870), "Mustafa Kids", fill=(219, 148, 153, 255), font=font_brand)
+    
+    # Draw product title
+    display_title = title[:45] + "..." if len(title) > 45 else title
+    draw.text((40, 915), display_title, fill=(40, 40, 40, 255), font=font_title)
+    
+    # Draw Price on bottom-right
+    price_str = f"{price:,.0f} so'm".replace(",", " ")
+    draw.text((700, 910), price_str, fill=(180, 80, 90, 255), font=font_price)
+    
+    # Composite drawings onto original image
+    image = Image.alpha_composite(image.convert("RGBA"), draw_layer).convert("RGB")
+    
+    out_io = io.BytesIO()
+    image.save(out_io, format="JPEG", quality=90)
+    return out_io.getvalue()
+
+
