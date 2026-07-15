@@ -139,7 +139,7 @@ async def post_random_product_to_channel():
         bot_username = bot_info.username
         
         webapp_url = os.getenv("WEBAPP_URL", "")
-        site_link = webapp_url if webapp_url.startswith("https://") else "https://soliha-babyshop.vercel.app/" # fallback
+        site_link = webapp_url if webapp_url.startswith("https://") else "https://mustafa-kids.vercel.app/" # fallback
         
         import html as py_html
         name_esc = py_html.escape(prod['name'])
@@ -414,7 +414,7 @@ async def process_video_caption(message: Message, state: FSMContext):
         await progress_msg.edit_text(
             "❌ Matn yaratishda xatolik yuz berdi. Iltimos, o'zingiz tavsif matnini kiriting:"
         )
-        await state.update_data(caption=brief_prompt, hashtags="#solihababyshop")
+        await state.update_data(caption=brief_prompt, hashtags="#mustafakids #mk_mustafa_kids")
         await state.set_state(VideoUploadStates.waiting_for_time)
 
 @router.message(VideoUploadStates.waiting_for_time)
@@ -546,8 +546,8 @@ async def cmd_start(message: Message, state: FSMContext):
             
     welcome_text = (
         f"Salom, {html.bold(user.first_name)}! \n"
-        f"👗🍼 {html.bold('Soliha')} do'konimizga xush kelibsiz!\n\n"
-        f"Bizning do'kondan nafis ayollar kiyimlari hamda sifatli bolalar kiyimlarini topishingiz mumkin.\n"
+        f"🛍️ {html.bold('Mustafa Kids')} bolalar kiyimlari do'konimizga xush kelibsiz!\n\n"
+        f"Bizning do'kondan sifatli, chiroyli va qulay bolalar kiyimlarini topishingiz mumkin.\n"
         f"Qiziqtirgan savollaringizni to'g'ridan-to'g'ri yozishingiz ham mumkin, AI yordamchimiz sizga javob beradi! 🤖\n\n"
         f"Quyidagi tugmalardan birini tanlang 👇"
     )
@@ -616,7 +616,7 @@ async def cmd_odam(message: Message):
     progress_bar = "🟩" * bar_filled + "⬜" * (bar_total - bar_filled)
 
     response_text = (
-        f"🎁 <b>SOLIHA BABY SHOP AKSIYASI!</b> 🎁\n"
+        f"🎁 <b>MUSTAFA KIDS AKSIYASI!</b> 🎁\n"
         f"━━━━━━━━━━━━━━━━━━━━━\n\n"
         f"👥 Do'stlarni taklif qiling va <b>qimmatbaho sovg'alarga</b> ega bo'ling!\n\n"
         f"╔══════════════════════╗\n"
@@ -637,7 +637,7 @@ async def cmd_odam(message: Message):
     )
 
     # Ulashish tugmasi
-    share_text = "Soliha Baby Shop aksiyasida ishtirok etaman! Siz ham qo'shiling 👶🎁"
+    share_text = "Mustafa Kids aksiyasida ishtirok etaman! Siz ham qo'shiling 🛍️🎁"
     share_url = f"https://t.me/share/url?url={ref_link}&text={share_text}"
 
     kb = InlineKeyboardMarkup(inline_keyboard=[
@@ -1237,11 +1237,11 @@ async def show_user_orders(message: Message):
 @router.message(F.text == "📞 Biz bilan bog'lanish")
 async def show_contact_info(message: Message):
     contact_text = (
-        f"👗🍼 {html.bold('Soliha - Ayollar va Bolalar kiyimlari do\'koni')}\n\n"
-        f"📍 Bizning manzil: Zarafshon shahri, 11-44 avtobus bekatida\n"
-        f"📞 Telefonlar: +998 93 067 18 88, +998 97 320 06 68\n"
-        f"💬 Telegram admin: @EnglishteacherMadi, @Salomov_2502\n"
-        f"📸 Instagram: <a href='https://www.instagram.com/soliha_baby_shop_zar/'>@soliha_baby_shop_zar</a>\n\n"
+        f"🛍️ {html.bold('Mustafa Kids - Bolalar kiyimlari do\'koni')}\n\n"
+        f"📍 Bizning manzil: Tashkent shahri\n"
+        f"📞 Telefon: +998 91 339 26 96\n"
+        f"💬 Telegram admin: @salomov_2502, @Doniyorovna96\n"
+        f"📸 Instagram: <a href='https://www.instagram.com/mk_mustafa_kids/'>@mk_mustafa_kids</a>\n\n"
         f"Har kuni 09:00 dan 20:00 gacha xizmatingizdamiz!"
     )
     await message.answer(contact_text, parse_mode="HTML")
@@ -1252,7 +1252,7 @@ async def show_admin_link(message: Message):
     username = message.from_user.username
     if username and username.lower() in [u.lower() for u in ADMIN_USERNAMES]:
         webapp_url = os.getenv("WEBAPP_URL", "")
-        site_link = webapp_url if webapp_url.startswith("https://") else "https://soliha-babyshop.vercel.app/"
+        site_link = webapp_url if webapp_url.startswith("https://") else "https://mustafa-kids.vercel.app/"
         await message.answer(
             f"🔑 Admin paneliga o'tish uchun quyidagi havolani bosing:\n"
             f"{site_link}/admin.html\n\n"

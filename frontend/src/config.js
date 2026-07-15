@@ -4,10 +4,10 @@ export const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiO
 export const SUPABASE_BUCKET = "products";
 export const ADMIN_PASSWORD = "admin123";
 export const SHOP_INFO = {
-    name: "Soliha Baby Shop",
-    logo: "Soliha baby shop",
-    phone1: "+998 93 067 18 88",
-    phone2: "+998 97 320 06 68",
-    address: "Zarafshon shahri, 11-44 avtobus bekatida",
+    name: "Mustafa Kids",
+    logo: "Mustafa Kids",
+    phone1: "+998 91 339 26 96",
+    phone2: "",
+    address: "Tashkent shahri",
     hours: "09:00 dan 20:00 gacha"
 };

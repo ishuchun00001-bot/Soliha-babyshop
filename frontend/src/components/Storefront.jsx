@@ -239,13 +239,14 @@ export default function Storefront() {
 
             {/* Announcement bar */}
             <div className="announcement-bar">
-                <span>✨ Zarafshon shahri bo'ylab bepul yetkazib berish! 🛍️ 9:00 dan 20:00 gacha xizmatingizdamiz</span>
+                <span>✨ Tashkent shahri bo'ylab bepul yetkazib berish! 🛍️ 9:00 dan 20:00 gacha xizmatingizdamiz</span>
             </div>
 
             {/* Header */}
             <header>
-                <div className="logo-container">
-                    <span className="logo-text">Soliha <span className="logo-subtext">baby shop</span></span>
+                <div className="logo-container" style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                    <img src="/logo.png" alt="Mustafa Kids Logo" style={{ height: '35px', width: 'auto', borderRadius: '50%' }} />
+                    <span className="logo-text">Mustafa <span className="logo-subtext">Kids</span></span>
                 </div>
                 
                 <div className="header-right">
@@ -279,8 +280,8 @@ export default function Storefront() {
             {/* Hero Section */}
             <section className="hero">
                 <span className="hero-tag">Nafislik va Qulaylik</span>
-                <h1>Soliha do'konida <span>Go'zallik va Sifat</span> uyg'unligi</h1>
-                <p>Farzandingiz va o'zingiz uchun eng sara, sifatli va betakror kiyim-kechaklar to'plamini taqdim etamiz</p>
+                <h1>Mustafa Kids do'konida <span>Go'zallik va Sifat</span> uyg'unligi</h1>
+                <p>Farzandingiz uchun eng sara, sifatli va betakror bolalar kiyim-kechaklari to'plamini taqdim etamiz</p>
             </section>
 
             {/* Search Section */}
@@ -368,7 +369,7 @@ export default function Storefront() {
                                             >
                                                 {prod.name}
                                             </h3>
-                                            <p className="product-desc">{prod.description || 'Soliha baby shop kiyimi'}</p>
+                                            <p className="product-desc">{prod.description || 'Mustafa Kids kiyimi'}</p>
                                             <div className="product-meta">
                                                 <span className="product-price">{formatPrice(prod.price)} so'm</span>
                                                 {sizesList.length > 0 && (
@@ -420,13 +421,13 @@ export default function Storefront() {
                 <div className="footer-grid">
                     <div className="footer-brand">
                         <h3>{SHOP_INFO.name}</h3>
-                        <p>Ayollar va bolalar kiyimlarining eng nafis to'plami. Sifat biz uchun eng birinchi o'rinda.</p>
+                        <p>Bolalar kiyimlarining eng nafis to'plami. Sifat biz uchun eng birinchi o'rinda.</p>
                     </div>
                     <div className="footer-contacts">
                         <h4>Bog'lanish 📞</h4>
                         <p><MapPin size={14} style={{ marginRight: '5px', display: 'inline' }} /> {SHOP_INFO.address}</p>
                         <p><Phone size={14} style={{ marginRight: '5px', display: 'inline' }} /> {SHOP_INFO.phone1}</p>
-                        <p><Phone size={14} style={{ marginRight: '5px', display: 'inline' }} /> {SHOP_INFO.phone2}</p>
+                        {SHOP_INFO.phone2 && <p><Phone size={14} style={{ marginRight: '5px', display: 'inline' }} /> {SHOP_INFO.phone2}</p>}
                     </div>
                     <div className="footer-hours">
                         <h4>Ish vaqti ⏰</h4>
@@ -435,7 +436,7 @@ export default function Storefront() {
                     </div>
                 </div>
                 <div className="footer-bottom">
-                    <p>&copy; 2026 Soliha Store. Barcha huquqlar himoyalangan.</p>
+                    <p>&copy; 2026 Mustafa Kids. Barcha huquqlar himoyalangan.</p>
                 </div>
             </footer>
 

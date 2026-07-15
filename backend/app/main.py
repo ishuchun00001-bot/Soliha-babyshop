@@ -234,7 +234,7 @@ async def lifespan(app: FastAPI):
     await bot.session.close()
     logger.info("Cleanup complete.")
 
-app = FastAPI(title="Soliha Baby Shop API", lifespan=lifespan)
+app = FastAPI(title="Mustafa Kids API", lifespan=lifespan)
 
 # Enable CORS for development
 app.add_middleware(
@@ -334,7 +334,7 @@ def read_root():
     index_file = STATIC_DIR / "index.html"
     if index_file.exists():
         return FileResponse(index_file)
-    return {"message": "Soliha Baby Shop do'koniga xush kelibsiz! index.html topilmadi."}
+    return {"message": "Mustafa Kids do'koniga xush kelibsiz! index.html topilmadi."}
 
 @app.get("/admin")
 def read_admin():

@@ -122,12 +122,12 @@ async def execute_tool(name: str, arguments: dict) -> str:
             
         elif name == "get_shop_info":
             info = {
-                "shop_name": "Soliha - Ayollar va Bolalar kiyimlari do'koni 👗🍼",
-                "address": "Zarafshon shahri, 11-44 avtobus bekatida",
-                "phone": "+998 93 067 18 88, +998 97 320 06 68",
-                "telegram_admins": "@EnglishteacherMadi, @Salomov_2502",
+                "shop_name": "Mustafa Kids - Bolalar kiyimlari do'koni 🛍️",
+                "address": "Tashkent shahri",
+                "phone": "+998 91 339 26 96",
+                "telegram_admins": "@salomov_2502, @Doniyorovna96",
                 "working_hours": "Har kuni 09:00 dan 20:00 gacha",
-                "delivery_terms": "Zarafshon sh. bo'ylab va viloyatlarga yetkazib berish mavjud. BTS / Pochta orqali yuboriladi. Yetkazib berish narxi kelishiladi."
+                "delivery_terms": "Tashkent sh. va viloyatlarga yetkazib berish mavjud. BTS / Pochta orqali yuboriladi. Yetkazib berish narxi kelishiladi."
             }
             return json.dumps(info, ensure_ascii=False)
             
@@ -141,17 +141,17 @@ async def execute_tool(name: str, arguments: dict) -> str:
 async def get_gpt_response(message_text: str, history: list = None) -> str:
     if not client:
         return (
-            "Assalomu alaykum! 🍼 Soliha Baby Shop do'konimizga xush kelibsiz.\n"
+            "Assalomu alaykum! 🛍️ Mustafa Kids do'konimizga xush kelibsiz.\n"
             "Hozirda AI yordamchi o'chirilgan. Savollaringiz bo'lsa adminga murojaat qiling:\n"
-            "📞 +998 90 123 45 67 | @EnglishteacherMadi, @Salomov_2502"
+            "📞 +998 91 339 26 96 | @salomov_2502, @Doniyorovna96"
         )
         
     system_prompt = (
-        "Siz 'Soliha - Ayollar va Bolalar kiyimlari do'koni' yordamchi AI sotuvchisisiz. Vazifangiz xaridorlar bilan o'ta xushmuomala, mehmondo'st, juda qisqa, lunda va chiroyli tilda O'zbek tilida muloqot qilishdir. Uzun gapirmang, qisqa va lo'nda javob bering.\n"
-        "Mijozlar ayollar va bolalar kiyimlari haqida so'rashadi.\n"
+        "Siz 'Mustafa Kids - Bolalar kiyimlari do'koni' yordamchi AI sotuvchisisiz. Vazifangiz xaridorlar bilan o'ta xushmuomala, mehmondo'st, juda qisqa, lunda va chiroyli tilda O'zbek tilida muloqot qilishdir. Uzun gapirmang, qisqa va lo'nda javob bering.\n"
+        "Mijozlar bolalar kiyimlari haqida so'rashadi.\n"
         "QAT'IY VA MUHIM QOIDALAR:\n"
-        "1. FAQAT DO'KON DOIRASIDA JAVOB BERISH: Siz FAQAT 'Soliha Baby Shop' do'koni, uning kiyimlari, toifalari, manzili, ish vaqti va yetkazib berish xizmatiga doir savollarga javob berasiz. Umuman boshqa mavzulardagi savollarga (masalan: dasturlash, matematika, tarix, siyosat, boshqa sohalar va h.k.) mutlaqo javob bermang. Agar mijoz boshqa mavzuda savol bersa, juda xushmuomala ravishda faqat do'kon va kiyim-kechaklar bo'yicha yordam bera olishingizni aytib, savolga javob berishni rad eting.\n"
-        "2. NARX VA OMBORDAGI SONI HAQIDA GAPIRMASLIK: Mahsulotlarning narxi yoki omborda nechta qolganligi (soni) haqida umuman gapirmang va ma'lumot bermang. Agar mijoz biron kiyimning narxini, uni qanday sotib olishni, buyurtma berishni yoki omborda bor-yo'qligini so'rasa, darhol adminlarni chaqiring. Javobingiz aynan quyidagicha bo'lishi kerak: 'Ushbu savolingiz bo'yicha hozir sizga adminlarimiz batafsil ma'lumot berishadi, iltimos biroz kuting: @EnglishteacherMadi yoki @Salomov_2502'.\n"
+        "1. FAQAT DO'KON DOIRASIDA JAVOB BERISH: Siz FAQAT 'Mustafa Kids' do'koni, uning kiyimlari, toifalari, manzili, ish vaqti va yetkazib berish xizmatiga doir savollarga javob berasiz. Umuman boshqa mavzulardagi savollarga (masalan: dasturlash, matematika, tarix, siyosat, boshqa sohalar va h.k.) mutlaqo javob bermang. Agar mijoz boshqa mavzuda savol bersa, juda xushmuomala ravishda faqat do'kon va kiyim-kechaklar bo'yicha yordam bera olishingizni aytib, savolga javob berishni rad eting.\n"
+        "2. NARX VA OMBORDAGI SONI HAQIDA GAPIRMASLIK: Mahsulotlarning narxi yoki omborda nechta qolganligi (soni) haqida umuman gapirmang va ma'lumot bermang. Agar mijoz biron kiyimning narxini, uni qanday sotib olishni, buyurtma berishni yoki omborda bor-yo'qligini so'rasa, darhol adminlarni chaqiring. Javobingiz aynan quyidagicha bo'lishi kerak: 'Ushbu savolingiz bo'yicha hozir sizga adminlarimiz batafsil ma'lumot berishadi, iltimos biroz kuting: @salomov_2502 yoki @Doniyorovna96'.\n"
         "3. O'zingizdan narx to'qimang va narx so'ralganda 'hozir sizga yozishadi' deb adminlarni chaqiring.\n"
         "4. Boshqa umumiy savollar (ish vaqti, do'kon manzili, telefon raqamlari, qanday toifalar borligi) uchun tegishli funksiyalarni (tools) chaqirib, o'ta qisqa va chiroyli javob bering.\n"
         "Javoblaringizda doimo chiroyli emojilar ishlating."
@@ -229,7 +229,7 @@ async def analyze_product_image(image_bytes: bytes, mime_type: str) -> dict:
         base64_image = base64.b64encode(image_bytes).decode("utf-8")
         
         prompt = (
-            "Siz 'Soliha' ayollar va bolalar kiyimlari do'koni uchun mahsulot tahlilchisisiz. "
+            "Siz 'Mustafa Kids' bolalar kiyimlari do'koni uchun mahsulot tahlilchisisiz. "
             "Ushbu yuklangan kiyim/mahsulot rasmini tahlil qiling. "
             "Natijani faqatgina JSON formatida, hech qanday markdown formatlashsiz (```json va ``` teglarsiz) qaytaring: \n"
             "{\n"
@@ -291,11 +291,11 @@ async def generate_video_post_caption(brief_info: str) -> dict:
     if not client:
         return {
             "caption": brief_info,
-            "hashtags": "#solihababyshop #bolalarkiyimi"
+            "hashtags": "#mustafakids #bolalarkiyimi #mk_mustafa_kids"
         }
     try:
         prompt = (
-            "Siz 'Soliha' ayollar va bolalar kiyimlari do'koni uchun sotuvchi va kopiraytersiz. "
+            "Siz 'Mustafa Kids' bolalar kiyimlari do'koni uchun sotuvchi va kopiraytersiz. "
             "Mijoz quyidagi qisqa ma'lumotni berdi:\n"
             f"'{brief_info}'\n\n"
             "Ushbu ma'lumot asosida Instagram va Telegram uchun jozibali, qiziqarli, emojilar bilan boyitilgan, "
@@ -303,7 +303,7 @@ async def generate_video_post_caption(brief_info: str) -> dict:
             "Natijani faqatgina JSON formatida, hech qanday markdown formatlashsiz (```json va ``` teglarsiz) qaytaring: \n"
             "{\n"
             "  \"caption\": \"Bu yerda chiroyli yozilgan tavsif matni bo'ladi. Emojilar ishlating.\",\n"
-            "  \"hashtags\": \"#heshteg1 #heshteg2 #solihababyshop\"\n"
+            "  \"hashtags\": \"#heshteg1 #heshteg2 #mustafakids #mk_mustafa_kids\"\n"
             "}\n"
             "Javobda faqat to'g'ri JSON bo'lishi shart, qo'shimcha matn yozmang."
         )
@@ -326,12 +326,12 @@ async def generate_video_post_caption(brief_info: str) -> dict:
         if "caption" not in data:
             data["caption"] = brief_info
         if "hashtags" not in data:
-            data["hashtags"] = "#solihababyshop #bolalarkiyimi"
+            data["hashtags"] = "#mustafakids #bolalarkiyimi #mk_mustafa_kids"
         return data
     except Exception as e:
         logger.error(f"Error generating video post caption: {e}")
         return {
             "caption": brief_info,
-            "hashtags": "#solihababyshop #bolalarkiyimi"
+            "hashtags": "#mustafakids #bolalarkiyimi #mk_mustafa_kids"
         }
 
