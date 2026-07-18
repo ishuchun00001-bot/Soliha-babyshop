@@ -342,10 +342,10 @@ async def generate_dalle_image(prompt: str) -> Optional[bytes]:
         return None
     try:
         response = await client.images.generate(
-            model="dall-e-3",
+            model="gpt-image-2",
             prompt=prompt,
             size="1024x1024",
-            quality="hd",
+            quality="high",
             n=1
         )
         url = response.data[0].url
