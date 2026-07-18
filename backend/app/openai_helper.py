@@ -383,165 +383,69 @@ def create_infographics(image_bytes: bytes, title: str, price: float, sizes: str
     import io
     from PIL import Image, ImageDraw, ImageFont
     
-    # 1. Create base canvas (1024x1280 px) with warm beige background
-    canvas_w = 1024
-    canvas_h = 1280
-    background_color = (245, 238, 227) # #f5eedf (warm beige/cream)
-    canvas = Image.new("RGB", (canvas_w, canvas_h), background_color)
-    draw = ImageDraw.Draw(canvas)
+    image = Image.open(io.BytesIO(image_bytes))
+    if image.mode != "RGB":
+        image = image.convert("RGB")
+        
+    image = image.resize((1024, 1024), Image.Resampling.LANCZOS)
     
-    # 2. Draw outer border (elegant thin line)
-    border_color = (209, 199, 189) # #d1c7bd
-    draw.rectangle([10, 10, canvas_w - 10, canvas_h - 10], outline=border_color, width=2)
+    # Create transparent drawing layer
+    draw_layer = Image.new("RGBA", image.size, (0, 0, 0, 0))
+    draw = ImageDraw.Draw(draw_layer)
     
-    # 3. Load Fonts
     try:
-        font_serif_lg = ImageFont.truetype("C:/Windows/Fonts/georgiab.ttf", 46)
-        font_serif_md = ImageFont.truetype("C:/Windows/Fonts/georgiab.ttf", 26)
-        font_serif_italic = ImageFont.truetype("C:/Windows/Fonts/georgiai.ttf", 22)
-        font_sans_bold = ImageFont.truetype("C:/Windows/Fonts/segoeuib.ttf", 24)
-        font_sans_regular = ImageFont.truetype("C:/Windows/Fonts/segoeui.ttf", 20)
-        font_sans_sm = ImageFont.truetype("C:/Windows/Fonts/segoeui.ttf", 16)
+        font_serif_lg = ImageFont.truetype("C:/Windows/Fonts/georgiab.ttf", 34)
+        font_serif_md = ImageFont.truetype("C:/Windows/Fonts/georgiab.ttf", 22)
+        font_sans_bold = ImageFont.truetype("C:/Windows/Fonts/segoeuib.ttf", 18)
+        font_sans_regular = ImageFont.truetype("C:/Windows/Fonts/segoeui.ttf", 18)
     except Exception:
-        # Fallback to default
         font_serif_lg = ImageFont.load_default()
         font_serif_md = ImageFont.load_default()
-        font_serif_italic = ImageFont.load_default()
         font_sans_bold = ImageFont.load_default()
         font_sans_regular = ImageFont.load_default()
-        font_sans_sm = ImageFont.load_default()
-
-    # 4. Load & Resize product photo
-    prod_image = Image.open(io.BytesIO(image_bytes))
-    if prod_image.mode != "RGB":
-        prod_image = prod_image.convert("RGB")
         
-    # Resize product photo to fit elegantly on the right
-    prod_w = 510
-    prod_h = 680
-    prod_resized = prod_image.resize((prod_w, prod_h), Image.Resampling.LANCZOS)
+    # Floating card at the bottom
+    # x: 30 to 994, y: 850 to 994
+    card_box = [30, 850, 994, 994]
+    card_fill = (255, 255, 255, 235) # Semi-transparent white
+    card_outline = (190, 180, 170, 255) # Warm gray/gold border
+    draw.rounded_rectangle(card_box, radius=20, fill=card_fill, outline=card_outline, width=2)
     
-    # Position product photo on canvas (x=470, y=70)
-    canvas.paste(prod_resized, (470, 70))
+    # Draw Brand name
+    draw.text((60, 870), "MUSTAFA KIDS", fill=(120, 110, 100, 255), font=font_sans_bold)
     
-    # Draw simple frame border around the product photo
-    draw.rectangle([470, 70, 470 + prod_w, 70 + prod_h], outline=border_color, width=1)
-    
-    # 5. Left Column Content (Brand, Titles, Badges, Features)
-    # Brand
-    draw.text((40, 60), "MUSTAFA KIDS", fill=(100, 90, 80), font=font_sans_sm)
-    
-    # Subtitle "Cool & Comfy" with decorative line
-    draw.text((40, 90), "Cool & Comfy", fill=(140, 130, 120), font=font_serif_italic)
-    draw.line([180, 105, 300, 105], fill=(140, 130, 120), width=1)
-    
-    # Product Title (e.g. SUMMER SET)
-    draw.text((40, 120), title.upper()[:16], fill=(74, 60, 49), font=font_serif_lg)
-    
-    # Rounded badge capsule "YUMSHOQ VA NAFAS OLADIGAN"
-    badge_bg = (119, 107, 95) # #776b5f
-    draw.rounded_rectangle([40, 190, 360, 230], radius=15, fill=badge_bg)
-    draw.text((65, 198), "YUMSHOQ VA NAFAS OLADIGAN", fill=(255, 255, 255), font=font_sans_sm)
-    
-    # Size info if present
+    # Draw sizes on the right
     if sizes:
-        draw.text((40, 250), f"O'lcham: {sizes}", fill=(74, 60, 49), font=font_sans_bold)
+        sizes_str = f"O'lcham: {sizes}"
+        bbox_sizes = draw.textbbox((0, 0), sizes_str, font=font_sans_regular)
+        w_sizes = bbox_sizes[2] - bbox_sizes[0]
+        draw.text((964 - w_sizes, 870), sizes_str, fill=(74, 60, 49, 255), font=font_sans_regular)
         
-    # Price Block
-    draw.text((40, 300), "NARXI:", fill=(140, 130, 120), font=font_sans_bold)
-    # Sale price
+    # Draw Product Title (left-aligned)
+    display_title = title[:35] + "..." if len(title) > 35 else title
+    draw.text((60, 915), display_title, fill=(60, 50, 40, 255), font=font_serif_lg)
+    
+    # Draw Sale Price (right-aligned)
     price_str = f"{price:,.0f} so'm".replace(",", " ")
-    draw.text((40, 330), price_str, fill=(20, 44, 115), font=font_serif_lg) # Navy blue
-    # Original price (crossed out)
+    bbox_price = draw.textbbox((0, 0), price_str, font=font_serif_lg)
+    w_price = bbox_price[2] - bbox_price[0]
+    draw.text((964 - w_price, 915), price_str, fill=(20, 44, 115, 255), font=font_serif_lg)
+    
+    # Draw Crossed-out Original Price (calculated as price * 2)
     original_price = price * 2
     old_price_str = f"{original_price:,.0f} so'm".replace(",", " ")
-    draw.text((40, 385), old_price_str, fill=(254, 74, 73), font=font_serif_md)
-    # Crossed line
-    bbox_old = draw.textbbox((40, 385), old_price_str, font=font_serif_md)
-    line_y = (bbox_old[1] + bbox_old[3]) // 2
-    draw.line([bbox_old[0], line_y, bbox_old[2], line_y], fill=(254, 74, 73), width=2)
+    bbox_old = draw.textbbox((0, 0), old_price_str, font=font_serif_md)
+    w_old = bbox_old[2] - bbox_old[0]
+    draw.text((964 - w_old, 960), old_price_str, fill=(254, 74, 73, 255), font=font_serif_md)
     
-    # Bullet points (Circular icons with Uzbek features)
-    features = [
-        "Yuqori sifatli paxta",
-        "Yengil va nafas oladigan",
-        "Zamonaviy va qulay dizayn",
-        "Har kuni uchun ideal tanlov"
-    ]
-    bullet_y = 450
-    for feat in features:
-        # Draw circular background
-        circle_center = (55, bullet_y + 15)
-        r = 15
-        draw.ellipse([circle_center[0]-r, circle_center[1]-r, circle_center[0]+r, circle_center[1]+r], fill=(219, 210, 196))
-        # Draw a small inner checkmark or dot
-        draw.ellipse([circle_center[0]-4, circle_center[1]-4, circle_center[0]+4, circle_center[1]+4], fill=(74, 60, 49))
-        
-        # Text
-        draw.text((85, bullet_y + 4), feat, fill=(74, 60, 49), font=font_sans_regular)
-        bullet_y += 55
-
-    # 6. Bottom Part Divider
-    draw.line([25, 780, canvas_w - 25, 780], fill=border_color, width=1)
+    # Draw red line through the original price text
+    bbox_old_text = draw.textbbox((964 - w_old, 960), old_price_str, font=font_serif_md)
+    line_y = (bbox_old_text[1] + bbox_old_text[3]) // 2
+    draw.line([bbox_old_text[0], line_y, bbox_old_text[2], line_y], fill=(254, 74, 73, 255), width=2)
     
-    # 7. Bottom Three Columns
-    # Column 1 (Details zoom in)
-    col1_x = 40
-    draw.text((col1_x, 800), "DETALLAR", fill=(74, 60, 49), font=font_serif_md)
-    # Crop two square details from the original product image and place them
-    detail_size = 130
-    # Safe boundary cropping
-    w_orig, h_orig = prod_resized.size
-    cx1, cy1 = int(w_orig * 0.4), int(h_orig * 0.2)
-    cx2, cy2 = int(w_orig * 0.5), int(h_orig * 0.6)
-    detail1 = prod_resized.crop((cx1, cy1, cx1 + detail_size, cy1 + detail_size))
-    detail2 = prod_resized.crop((cx2, cy2, cx2 + detail_size, cy2 + detail_size))
-    
-    canvas.paste(detail1, (col1_x, 850))
-    canvas.paste(detail2, (col1_x + 150, 850))
-    # Border frames for details
-    draw.rectangle([col1_x, 850, col1_x + detail_size, 850 + detail_size], outline=border_color, width=1)
-    draw.rectangle([col1_x + 150, 850, col1_x + 150 + detail_size, 850 + detail_size], outline=border_color, width=1)
-    
-    draw.text((col1_x, 1000), "Nafis va yumshoq tikuvlar", fill=(100, 90, 80), font=font_sans_sm)
-    draw.text((col1_x, 1025), "Qulay va keng o'lchamlar", fill=(100, 90, 80), font=font_sans_sm)
-    
-    # Column 2 (Afzalliklari list)
-    col2_x = 380
-    draw.text((col2_x, 800), "AFZALLIKLARI", fill=(74, 60, 49), font=font_serif_md)
-    benefits = [
-        "• 100% tabiiy va xavfsiz",
-        "• Terini bezovta qilmaydi",
-        "• Yuvishda rangi o'chmaydi",
-        "• Harakatni cheklamaydi",
-        "• Allergiyaga qarshi mato"
-    ]
-    ben_y = 850
-    for ben in benefits:
-        draw.text((col2_x, ben_y), ben, fill=(74, 60, 49), font=font_sans_regular)
-        ben_y += 35
-        
-    # Column 3 (Mato close-up)
-    col3_x = 700
-    draw.text((col3_x, 800), "MATO TEKSTURASI", fill=(74, 60, 49), font=font_serif_md)
-    detail_w = 280
-    detail_h = 160
-    cx3, cy3 = int(w_orig * 0.35), int(h_orig * 0.4)
-    texture_img = prod_resized.crop((cx3, cy3, cx3 + detail_w, cy3 + detail_h))
-    canvas.paste(texture_img, (col3_x, 850))
-    # Border frame for texture
-    draw.rectangle([col3_x, 850, col3_x + detail_w, 850 + detail_h], outline=border_color, width=1)
-    
-    # Description label for texture
-    draw.text((col3_x, 1025), "100% Premium Paxta matosi", fill=(100, 90, 80), font=font_sans_sm)
-    
-    # 8. Footer (Little moments...)
-    draw.line([25, 1210, canvas_w - 25, 1210], fill=border_color, width=1)
-    footer_text = "LITTLE MOMENTS, GREAT MEMORIES  •  MUSTAFA KIDS"
-    draw.text((canvas_w // 2 - 220, 1230), footer_text, fill=(140, 130, 120), font=font_sans_sm)
+    # Composite drawings onto original image
+    final_image = Image.alpha_composite(image.convert("RGBA"), draw_layer).convert("RGB")
     
     out_io = io.BytesIO()
-    canvas.save(out_io, format="JPEG", quality=95)
+    final_image.save(out_io, format="JPEG", quality=95)
     return out_io.getvalue()
-
-

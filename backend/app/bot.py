@@ -33,10 +33,10 @@ class CheckoutStates(StatesGroup):
 
 # States for photo-based product uploading
 class ProductUploadStates(StatesGroup):
-    waiting_for_confirm_or_edit = State()
-    editing_name = State()
-    editing_price = State()
-    editing_sizes = State()
+    waiting_for_name = State()
+    waiting_for_price = State()
+    waiting_for_sizes = State()
+    waiting_for_category = State()
 
 # States for scheduled video uploading
 class VideoUploadStates(StatesGroup):
@@ -251,88 +251,60 @@ async def handle_admin_photo_upload(message: Message, state: FSMContext):
     await bot.download(file_info, destination=file_io, timeout=120)
     image_bytes = file_io.getvalue()
     
-    await progress_msg.edit_text("🔍 AI rasmdagi kiyim ma'lumotlarini o'rganmoqda (nom, narx, o'lcham, tavsif)...")
-    try:
-        # Call OpenAI Vision to analyze the image
-        ai_data = await analyze_product_image(image_bytes, "image/jpeg")
-        
-        name = ai_data.get("name", "Yangi kiyim")
-        price = float(ai_data.get("price", 120000))
-        sizes = ai_data.get("sizes", "92, 98, 104")
-        description = ai_data.get("description", "Tavsif mavjud emas")
-        stock = int(ai_data.get("stock", 10))
-        
-        await state.update_data(
-            image_bytes=image_bytes,
-            file_name=f"{int(time.time())}.jpg",
-            name=name,
-            price=price,
-            sizes=sizes,
-            description=description,
-            stock=stock
-        )
-        
-        await progress_msg.delete()
-        await send_confirm_menu(message, state)
-        await state.set_state(ProductUploadStates.waiting_for_confirm_or_edit)
-        
-    except Exception as e:
-        logger.error(f"Error in handle_admin_photo_upload: {e}")
-        await progress_msg.edit_text(f"❌ Xatolik yuz berdi: {str(e)}")
-        await state.clear()
+    # Save image bytes in FSM Context
+    await state.update_data(image_bytes=image_bytes, file_name=f"{int(time.time())}.jpg")
+    
+    await progress_msg.delete()
+    await message.answer("Mahsulot rasmi qabul qilindi. 📝 Iltimos, kiyim nomini kiriting:")
+    await state.set_state(ProductUploadStates.waiting_for_name)
 
 
-@router.callback_query(F.data == "upload_edit_name")
-async def start_edit_name(callback: CallbackQuery, state: FSMContext):
-    await callback.message.answer("📝 Yangi kiyim nomini kiriting:")
-    await state.set_state(ProductUploadStates.editing_name)
-    await callback.answer()
-
-
-@router.message(ProductUploadStates.editing_name)
-async def process_edit_name(message: Message, state: FSMContext):
-    new_name = message.text.strip()
-    if not new_name:
+@router.message(ProductUploadStates.waiting_for_name)
+async def process_upload_name(message: Message, state: FSMContext):
+    name = message.text.strip()
+    if not name:
         await message.answer("Iltimos, kiyim nomini yozing:")
         return
         
-    await state.update_data(name=new_name)
-    await send_confirm_menu(message, state)
-    await state.set_state(ProductUploadStates.waiting_for_confirm_or_edit)
+    await state.update_data(name=name)
+    await message.answer("💵 Iltimos, sotish narxini kiriting (faqat raqamda, masalan: 100000):")
+    await state.set_state(ProductUploadStates.waiting_for_price)
 
 
-@router.callback_query(F.data == "upload_edit_price")
-async def start_edit_price(callback: CallbackQuery, state: FSMContext):
-    await callback.message.answer("💵 Yangi narxni kiriting (faqat raqam, masalan: 130000):")
-    await state.set_state(ProductUploadStates.editing_price)
-    await callback.answer()
-
-
-@router.message(ProductUploadStates.editing_price)
-async def process_edit_price(message: Message, state: FSMContext):
+@router.message(ProductUploadStates.waiting_for_price)
+async def process_upload_price(message: Message, state: FSMContext):
     price_text = "".join([c for c in message.text if c.isdigit()])
     if not price_text:
-        await message.answer("Iltimos, narxni faqat raqamda kiriting (masalan: 120000):")
+        await message.answer("Iltimos, narxni faqat raqamda kiriting (masalan: 95000):")
         return
         
-    await state.update_data(price=float(price_text))
-    await send_confirm_menu(message, state)
-    await state.set_state(ProductUploadStates.waiting_for_confirm_or_edit)
+    price = float(price_text)
+    await state.update_data(price=price)
+    
+    await message.answer(
+        "📏 Mahsulot o'lchamlarini kiriting (masalan: '92, 98, 104').\n"
+        "Agar o'lcham bo'lmasa, /skip buyrug'ini yuboring:"
+    )
+    await state.set_state(ProductUploadStates.waiting_for_sizes)
 
 
-@router.callback_query(F.data == "upload_edit_sizes")
-async def start_edit_sizes(callback: CallbackQuery, state: FSMContext):
-    await callback.message.answer("📏 Yangi o'lchamlarni kiriting (masalan: 92, 98, 104):")
-    await state.set_state(ProductUploadStates.editing_sizes)
-    await callback.answer()
-
-
-@router.message(ProductUploadStates.editing_sizes)
-async def process_edit_sizes(message: Message, state: FSMContext):
-    new_sizes = message.text.strip()
-    await state.update_data(sizes=new_sizes)
-    await send_confirm_menu(message, state)
-    await state.set_state(ProductUploadStates.waiting_for_confirm_or_edit)
+@router.message(ProductUploadStates.waiting_for_sizes)
+@router.message(Command("skip"))
+async def process_upload_sizes(message: Message, state: FSMContext):
+    sizes = None
+    if message.text and not message.text.startswith("/skip"):
+        sizes = message.text.strip()
+        
+    await state.update_data(sizes=sizes)
+    
+    kb = get_upload_categories_keyboard()
+    if not kb.inline_keyboard:
+        await message.answer("Tizimda kategoriyalar mavjud emas. Avval kategoriyalar qo'shing.")
+        await state.clear()
+        return
+        
+    await message.answer("Toifani tanlang:", reply_markup=kb)
+    await state.set_state(ProductUploadStates.waiting_for_category)
 
 
 @router.callback_query(F.data.startswith("upload_cat_"))
@@ -346,12 +318,14 @@ async def process_upload_category(callback: CallbackQuery, state: FSMContext):
     prod_name = data["name"]
     price = data["price"]
     sizes = data.get("sizes")
-    prod_desc = data.get("description", "Tavsif mavjud emas")
-    prod_stock = data.get("stock", 10)
     category_id = cat_id
     
+    # Description set as a clean fallback without AI Vision study
+    prod_desc = f"{prod_name}. Sifatli va qulay bolalar kiyimi."
+    prod_stock = 10
+    
     await callback.message.delete()
-    progress_msg = await callback.message.answer("✨ Mahsulot infografikasi (brending, chegirma narxlari va o'lchamlar) chizilmoqda...")
+    progress_msg = await callback.message.answer("✨ Mahsulot infografikasi chizilmoqda...")
     
     try:
         # Bypassing DALL-E generation entirely! Directly use the uploaded original photo.
@@ -403,7 +377,6 @@ async def process_upload_category(callback: CallbackQuery, state: FSMContext):
     except Exception as e:
         logger.error(f"Error creating product from bot: {e}")
         await progress_msg.edit_text(f"❌ Xatolik yuz berdi: {str(e)}")
-        
     await state.clear()
 
 # --- Video Scheduling Handlers ---
