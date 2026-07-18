@@ -350,6 +350,7 @@ export default function Storefront() {
                                         exit={{ opacity: 0, scale: 0.9 }}
                                         transition={{ duration: 0.3 }}
                                     >
+                                        <div className="sale-badge">Chegirma -50%</div>
                                         <div 
                                             className="product-image-wrapper"
                                             onClick={() => setSelectedProduct(prod)}
@@ -370,8 +371,11 @@ export default function Storefront() {
                                                 {prod.name}
                                             </h3>
                                             <p className="product-desc">{prod.description || 'Mustafa Kids kiyimi'}</p>
-                                            <div className="product-meta">
-                                                <span className="product-price">{formatPrice(prod.price)} so'm</span>
+                                            <div className="product-meta" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%', gap: '0.5rem' }}>
+                                                <div className="price-container">
+                                                    <span className="original-price">{formatPrice(prod.price * 2)} so'm</span>
+                                                    <span className="product-price">{formatPrice(prod.price)} so'm</span>
+                                                </div>
                                                 {sizesList.length > 0 && (
                                                     <span className="product-sizes-badge">📏 {sizesList[0]}+</span>
                                                 )}
@@ -516,7 +520,7 @@ export default function Storefront() {
                                 <button className="close-drawer" onClick={() => setSelectedProduct(null)}>&times;</button>
                             </div>
                             <div style={{ padding: '2rem', display: 'flex', gap: '2rem', flexDirection: window.innerWidth < 768 ? 'column' : 'row' }}>
-                                <div style={{ width: window.innerWidth < 768 ? '100%' : '200px', height: '200px', background: 'var(--primary-rose-light)', borderRadius: 'var(--radius-md)', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
+                                <div style={{ width: window.innerWidth < 768 ? '100%' : '200px', height: '200px', background: 'var(--primary-navy-light)', borderRadius: 'var(--radius-md)', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', border: '1px solid var(--glass-border)' }}>
                                     {selectedProduct.image_url ? (
                                         <img src={selectedProduct.image_url} alt={selectedProduct.name} style={{ width: '100%', height: '100%', objectFit: 'contain', padding: '0.5rem' }} />
                                     ) : (
@@ -525,7 +529,10 @@ export default function Storefront() {
                                 </div>
                                 <div style={{ flexGrow: 1, display: 'flex', flexDirection: 'column', gap: '1rem' }}>
                                     <p style={{ color: 'var(--text-muted)', fontSize: '0.95rem' }}>{selectedProduct.description || 'Batafsil ma\'lumotlar mavjud emas.'}</p>
-                                    <h3 style={{ fontSize: '1.4rem', fontWeight: 700, color: 'var(--accent-terracotta)' }}>{formatPrice(selectedProduct.price)} so'm</h3>
+                                    <div className="price-container">
+                                        <span className="original-price" style={{ fontSize: '1.05rem' }}>{formatPrice(selectedProduct.price * 2)} so'm</span>
+                                        <span className="product-price" style={{ fontSize: '1.6rem', fontWeight: 700 }}>{formatPrice(selectedProduct.price)} so'm</span>
+                                    </div>
                                     
                                     {/* Size selection if sizes exist */}
                                     {selectedProduct.sizes && (

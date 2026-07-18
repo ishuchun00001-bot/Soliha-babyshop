@@ -33,9 +33,10 @@ class CheckoutStates(StatesGroup):
 
 # States for photo-based product uploading
 class ProductUploadStates(StatesGroup):
+    waiting_for_name = State()
     waiting_for_price = State()
-    waiting_for_category = State()
     waiting_for_sizes = State()
+    waiting_for_category = State()
 
 # States for scheduled video uploading
 class VideoUploadStates(StatesGroup):
@@ -200,31 +201,21 @@ async def handle_admin_photo_upload(message: Message, state: FSMContext):
     # Save image bytes in FSM Context
     await state.update_data(image_bytes=image_bytes, file_name=f"{int(time.time())}.jpg")
     
-    # Check if caption contains price digits
-    price = None
-    if message.caption:
-        # Extract digits
-        price_digits = "".join([c for c in message.caption if c.isdigit()])
-        if price_digits:
-            price = float(price_digits)
-            
-    if price:
-        await state.update_data(price=price)
-        # Show category list directly
-        kb = get_upload_categories_keyboard()
-        if not kb.inline_keyboard:
-            await message.answer("Tizimda hali kategoriyalar mavjud emas. Iltimos avval admin panelda kategoriya qo'shing.")
-            await state.clear()
-            return
-        await message.answer(
-            f"💵 Narx aniqlandi: {price:,.0f} so'm.\n\n"
-            f"Iltimos, mahsulot toifasini tanlang:", 
-            reply_markup=kb
-        )
-        await state.set_state(ProductUploadStates.waiting_for_category)
-    else:
-        await message.answer("Mahsulot rasmi qabul qilindi. 💵 Iltimos, narxini kiriting (faqat raqamda, masalan: 120000):")
-        await state.set_state(ProductUploadStates.waiting_for_price)
+    await message.answer("Mahsulot rasmi qabul qilindi. 📝 Iltimos, kiyim nomini kiriting:")
+    await state.set_state(ProductUploadStates.waiting_for_name)
+
+
+@router.message(ProductUploadStates.waiting_for_name)
+async def process_upload_name(message: Message, state: FSMContext):
+    name = message.text.strip()
+    if not name:
+        await message.answer("Iltimos, kiyim nomini yozing:")
+        return
+        
+    await state.update_data(name=name)
+    await message.answer("💵 Iltimos, sotish narxini kiriting (faqat raqamda, masalan: 100000):")
+    await state.set_state(ProductUploadStates.waiting_for_price)
+
 
 @router.message(ProductUploadStates.waiting_for_price)
 async def process_upload_price(message: Message, state: FSMContext):
@@ -236,6 +227,22 @@ async def process_upload_price(message: Message, state: FSMContext):
     price = float(price_text)
     await state.update_data(price=price)
     
+    await message.answer(
+        "📏 Mahsulot o'lchamlarini kiriting (masalan: '3-4y, 5-6y' yoki '0-3 oy, 3-6 oy').\n"
+        "Agar o'lcham bo'lmasa, /skip buyrug'ini yuboring:"
+    )
+    await state.set_state(ProductUploadStates.waiting_for_sizes)
+
+
+@router.message(ProductUploadStates.waiting_for_sizes)
+@router.message(Command("skip"))
+async def process_upload_sizes(message: Message, state: FSMContext):
+    sizes = None
+    if message.text and not message.text.startswith("/skip"):
+        sizes = message.text.strip()
+        
+    await state.update_data(sizes=sizes)
+    
     kb = get_upload_categories_keyboard()
     if not kb.inline_keyboard:
         await message.answer("Tizimda kategoriyalar mavjud emas. Avval kategoriyalar qo'shing.")
@@ -245,49 +252,37 @@ async def process_upload_price(message: Message, state: FSMContext):
     await message.answer("Toifani tanlang:", reply_markup=kb)
     await state.set_state(ProductUploadStates.waiting_for_category)
 
+
 @router.callback_query(F.data.startswith("upload_cat_"))
 async def process_upload_category(callback: CallbackQuery, state: FSMContext):
     cat_id = int(callback.data.split("_")[2])
     await state.update_data(category_id=cat_id)
     
     await callback.message.delete()
-    await callback.message.answer(
-        "📏 Mahsulot o'lchamlarini kiriting (masalan: 'M, L, XL' yoki '0-3 oy, 3-6 oy').\n"
-        "Agar o'lcham bo'lmasa, /skip buyrug'ini yuboring:"
-    )
-    await state.set_state(ProductUploadStates.waiting_for_sizes)
-    await callback.answer()
-
-@router.message(ProductUploadStates.waiting_for_sizes)
-@router.message(Command("skip"))
-async def process_upload_sizes(message: Message, state: FSMContext):
-    sizes = None
-    if not message.text.startswith("/skip"):
-        sizes = message.text.strip()
-        
+    
     data = await state.get_data()
     image_bytes = data["image_bytes"]
     file_name = data["file_name"]
+    prod_name = data["name"]
     price = data["price"]
-    category_id = data["category_id"]
+    sizes = data.get("sizes")
+    category_id = cat_id
     
-    # Process with AI and upload
-    progress_msg = await message.answer("🪄 AI rasmni tahlil qilmoqda va mahsulotni saytga joylashtirmoqda. Iltimos kuting...")
+    progress_msg = await callback.message.answer("🪄 AI rasmni tahlil qilmoqda va mahsulotni saytga joylashtirmoqda. Iltimos kuting...")
     
     try:
-        # 1. Call OpenAI Vision to get Name and Description from original image first
+        # 1. Call OpenAI Vision to get Description from original image first
         await progress_msg.edit_text("🔍 AI rasmdagi kiyim ma'lumotlarini o'rganmoqda...")
         ai_data = await analyze_product_image(image_bytes, "image/jpeg")
-        prod_name = ai_data.get("name", "Yangi kiyim")
         prod_desc = ai_data.get("description", "Tavsif mavjud emas")
         prod_stock = ai_data.get("stock", 10)
         
         # 2. Generate premium studio image with DALL-E 3
-        await progress_msg.edit_text("🎨 AI professional studio sifatidagi katalog rasmini chizmoqda (DALL-E 3)...")
+        await progress_msg.edit_text("🎨 AI professional 4K studio sifatidagi katalog rasmini chizmoqda (DALL-E 3)...")
         dalle_prompt = (
-            f"A premium, professional studio catalog photo of a baby/child clothing item: {prod_name}. "
-            f"Description: {prod_desc}. "
-            f"Perfect lighting, soft baby boutique studio background, highly detailed fabric, commercial fashion catalog shot."
+            f"A premium 4k high quality pro photo studio clothing shot of a baby/child clothing item: {prod_name}. "
+            f"Specifically: {prod_desc}. "
+            f"Clean minimalist background, professional studio fashion lighting, commercial child boutique catalog style."
         )
         premium_bytes = await generate_dalle_image(dalle_prompt)
         
@@ -295,7 +290,7 @@ async def process_upload_sizes(message: Message, state: FSMContext):
         final_bytes = premium_bytes if premium_bytes else image_bytes
         
         # 3. Create Infographics (add title, brand name, price and sizes overlay)
-        await progress_msg.edit_text("✨ Mahsulot infografikasi (brending, narx va o'lchamlar) chizilmoqda...")
+        await progress_msg.edit_text("✨ Mahsulot infografikasi (brending, chegirma narxlari va o'lchamlar) chizilmoqda...")
         try:
             infographic_bytes = create_infographics(final_bytes, prod_name, price, sizes)
         except Exception as info_err:
@@ -332,7 +327,7 @@ async def process_upload_sizes(message: Message, state: FSMContext):
                 f"💵 Narxi: {price:,.0f} so'm\n"
                 f"📏 O'lchamlar: {sizes_esc}\n"
                 f"📝 Tavsif: {desc_esc}\n\n"
-                f"Mahsulot Vercel saytida faol va kanalga reklama qilinadi.",
+                f"Mahsulot saytda faol va kanalga reklama qilinadi.",
                 parse_mode="HTML"
             )
             

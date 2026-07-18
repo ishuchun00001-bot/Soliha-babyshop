@@ -379,25 +379,28 @@ def create_infographics(image_bytes: bytes, title: str, price: float, sizes: str
     try:
         font_title = ImageFont.truetype("C:/Windows/Fonts/segoeui.ttf", 36)
         font_price = ImageFont.truetype("C:/Windows/Fonts/segoeuib.ttf", 44)
+        font_old_price = ImageFont.truetype("C:/Windows/Fonts/segoeui.ttf", 28)
         font_brand = ImageFont.truetype("C:/Windows/Fonts/segoeuib.ttf", 26)
         font_sizes = ImageFont.truetype("C:/Windows/Fonts/segoeui.ttf", 24)
     except Exception:
         try:
             font_title = ImageFont.truetype("C:/Windows/Fonts/arial.ttf", 36)
             font_price = ImageFont.truetype("C:/Windows/Fonts/arialbd.ttf", 44)
+            font_old_price = ImageFont.truetype("C:/Windows/Fonts/arial.ttf", 28)
             font_brand = ImageFont.truetype("C:/Windows/Fonts/arialbd.ttf", 26)
             font_sizes = ImageFont.truetype("C:/Windows/Fonts/arial.ttf", 24)
         except Exception:
             font_title = ImageFont.load_default()
             font_price = ImageFont.load_default()
+            font_old_price = ImageFont.load_default()
             font_brand = ImageFont.load_default()
             font_sizes = ImageFont.load_default()
             
     # Bottom banner box (semi-transparent elegant white)
     draw.rectangle([0, 850, 1024, 1024], fill=(255, 255, 255, 220))
     
-    # Gold/rose border separator line on top of bottom banner
-    draw.line([0, 850, 1024, 850], fill=(219, 148, 153, 255), width=4)
+    # Navy blue border separator line on top of bottom banner
+    draw.line([0, 850, 1024, 850], fill=(20, 44, 115, 255), width=4)
     
     # Sizes badge on top-right corner
     if sizes:
@@ -407,19 +410,29 @@ def create_infographics(image_bytes: bytes, title: str, price: float, sizes: str
         text_h = bbox[3] - bbox[1]
         badge_w = text_w + 30
         badge_h = text_h + 16
-        draw.rounded_rectangle([1024 - badge_w - 40, 40, 1024 - 40, 40 + badge_h], radius=15, fill=(219, 148, 153, 240))
+        draw.rounded_rectangle([1024 - badge_w - 40, 40, 1024 - 40, 40 + badge_h], radius=15, fill=(20, 44, 115, 240))
         draw.text((1024 - badge_w - 25, 48), size_txt, fill=(255, 255, 255, 255), font=font_sizes)
         
-    # Draw Mustafa Kids branding on the bottom banner
-    draw.text((40, 870), "Mustafa Kids", fill=(219, 148, 153, 255), font=font_brand)
+    # Draw Mustafa Kids branding on the bottom banner (using Chado navy blue)
+    draw.text((40, 870), "Mustafa Kids", fill=(20, 44, 115, 255), font=font_brand)
     
     # Draw product title
     display_title = title[:45] + "..." if len(title) > 45 else title
     draw.text((40, 915), display_title, fill=(40, 40, 40, 255), font=font_title)
     
-    # Draw Price on bottom-right
+    # Draw Crossed-out Original Price (calculated as price * 2)
+    original_price = price * 2
+    old_price_str = f"{original_price:,.0f} so'm".replace(",", " ")
+    draw.text((700, 865), old_price_str, fill=(254, 74, 73, 255), font=font_old_price)
+    
+    # Draw red line through the original price text
+    bbox_old = draw.textbbox((700, 865), old_price_str, font=font_old_price)
+    line_y = (bbox_old[1] + bbox_old[3]) // 2
+    draw.line([bbox_old[0], line_y, bbox_old[2], line_y], fill=(254, 74, 73, 255), width=3)
+    
+    # Draw Sale Price
     price_str = f"{price:,.0f} so'm".replace(",", " ")
-    draw.text((700, 910), price_str, fill=(180, 80, 90, 255), font=font_price)
+    draw.text((700, 910), price_str, fill=(20, 44, 115, 255), font=font_price)
     
     # Composite drawings onto original image
     image = Image.alpha_composite(image.convert("RGBA"), draw_layer).convert("RGB")
