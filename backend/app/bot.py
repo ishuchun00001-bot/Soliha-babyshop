@@ -280,9 +280,13 @@ async def process_upload_category(callback: CallbackQuery, state: FSMContext):
         # 2. Generate premium studio image with DALL-E 3
         await progress_msg.edit_text("🎨 AI professional 4K studio sifatidagi katalog rasmini chizmoqda (DALL-E 3)...")
         dalle_prompt = (
-            f"A premium 4k high quality pro photo studio clothing shot of a baby/child clothing item: {prod_name}. "
-            f"Specifically: {prod_desc}. "
-            f"Clean minimalist background, professional studio fashion lighting, commercial child boutique catalog style."
+            f"A luxury children's fashion advertisement campaign top view shot of a baby/child clothing item: {prod_name}. "
+            f"Specifically details: {prod_desc}. "
+            f"The clothing item design, fabric texture, colors, embroidery, buttons, and stitching must remain exactly identical to the original product. "
+            f"Presented beautifully on a minimal luxury background with warm cream gradient, soft ivory and beige colors with very light linen texture. "
+            f"Elegantly decorated with a few accessories around the clothing like neutral wooden blocks, a soft blanket, and cotton flowers. "
+            f"Professional fashion studio lighting, large softbox, soft window reflections, natural fabric texture, ultra sharp, magazine layout composition. "
+            f"Style: Luxury Kids Fashion Zara Kids and Jacadi Paris editorial campaign look. Aspect Ratio: 9:16."
         )
         premium_bytes = await generate_dalle_image(dalle_prompt)
         
