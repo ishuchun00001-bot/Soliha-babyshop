@@ -1333,9 +1333,10 @@ async def delete_leave_message(message: Message):
 # Fallback free text handler -> OpenAI GPT assistant
 @router.message(F.text)
 async def handle_gpt_chat(message: Message, state: FSMContext):
-    # Do not respond to admins writing text messages
+    # Do not respond to non-admins writing text messages
     username = message.from_user.username
-    if username and username.lower() in [u.lower() for u in ADMIN_USERNAMES]:
+    is_admin = username and username.lower() in [u.lower() for u in ADMIN_USERNAMES]
+    if not is_admin:
         return
 
     if message.text.startswith("/") or message.text in ["🛍️ Katalog", "🌐 Mini Do'kon", "🛒 Savatcha", "📦 Buyurtmalarim", "📞 Biz bilan bog'lanish", "⚙️ Admin Panel Havolasi", "🎥 Video rejalashtirish"]:
