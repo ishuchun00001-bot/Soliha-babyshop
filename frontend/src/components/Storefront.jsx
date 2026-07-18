@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
     ShoppingBag, Search, X, Plus, Minus, Check, MapPin, Phone, Clock, ShoppingCart
@@ -27,7 +27,103 @@ export default function Storefront() {
     const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
     const [isSuccessOpen, setIsSuccessOpen] = useState(false);
     const [selectedProduct, setSelectedProduct] = useState(null);
-    const [zoomedImage, setZoomedImage] = useState(null);
+    
+    // Lightbox gallery states
+    const [activeLightboxIndex, setActiveLightboxIndex] = useState(null);
+    const [zoomScale, setZoomScale] = useState(1);
+    const [panOffset, setPanOffset] = useState({ x: 0, y: 0 });
+    const [isDragging, setIsDragging] = useState(false);
+    const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
+    
+    const touchRef = useRef({
+        startX: 0,
+        startY: 0,
+        lastDistance: 0,
+        isSwiping: false,
+        isPinching: false,
+        lastTap: 0
+    });
+
+    const handleNextLightbox = () => {
+        if (activeLightboxIndex !== null && activeLightboxIndex < filteredProducts.length - 1) {
+            setActiveLightboxIndex(activeLightboxIndex + 1);
+        }
+    };
+    
+    const handlePrevLightbox = () => {
+        if (activeLightboxIndex !== null && activeLightboxIndex > 0) {
+            setActiveLightboxIndex(activeLightboxIndex - 1);
+        }
+    };
+
+    const handleWheel = (e) => {
+        const intensity = 0.15;
+        const delta = -e.deltaY;
+        const change = delta > 0 ? intensity : -intensity;
+        setZoomScale(prev => {
+            const nextScale = Math.max(1, Math.min(5, prev + change));
+            if (nextScale === 1) setPanOffset({ x: 0, y: 0 });
+            return nextScale;
+        });
+    };
+
+    const handleMouseDown = (e) => {
+        if (zoomScale <= 1) return;
+        setIsDragging(true);
+        setDragStart({ x: e.clientX - panOffset.x, y: e.clientY - panOffset.y });
+    };
+
+    const handleMouseMove = (e) => {
+        if (!isDragging) return;
+        setPanOffset({
+            x: e.clientX - dragStart.x,
+            y: e.clientY - dragStart.y
+        });
+    };
+
+    const handleMouseUp = () => {
+        setIsDragging(false);
+    };
+
+    // Reset zoom and pan when lightbox product changes
+    useEffect(() => {
+        setZoomScale(1);
+        setPanOffset({ x: 0, y: 0 });
+        setIsDragging(false);
+    }, [activeLightboxIndex]);
+
+    // Handle Keyboard navigation (ArrowLeft, ArrowRight, Escape)
+    useEffect(() => {
+        const handleKeyDown = (e) => {
+            if (activeLightboxIndex === null) return;
+            if (e.key === 'Escape') {
+                setActiveLightboxIndex(null);
+            } else if (e.key === 'ArrowRight') {
+                handleNextLightbox();
+            } else if (e.key === 'ArrowLeft') {
+                handlePrevLightbox();
+            }
+        };
+        window.addEventListener('keydown', handleKeyDown);
+        return () => window.removeEventListener('keydown', handleKeyDown);
+    }, [activeLightboxIndex, filteredProducts]);
+
+    // Preload next and previous images
+    useEffect(() => {
+        if (activeLightboxIndex !== null) {
+            const preload = (url) => {
+                if (!url) return;
+                const img = new Image();
+                img.src = url;
+            };
+            if (activeLightboxIndex > 0) {
+                preload(filteredProducts[activeLightboxIndex - 1]?.image_url);
+            }
+            if (activeLightboxIndex < filteredProducts.length - 1) {
+                preload(filteredProducts[activeLightboxIndex + 1]?.image_url);
+            }
+        }
+    }, [activeLightboxIndex, filteredProducts]);
     
     // Checkout form state
     const [custName, setCustName] = useState('');
@@ -425,7 +521,7 @@ export default function Storefront() {
                         layout
                     >
                         <AnimatePresence>
-                            {filteredProducts.map(prod => {
+                            {filteredProducts.map((prod, idx) => {
                                 const sizesList = prod.sizes ? prod.sizes.split(",").map(s => s.trim()) : [];
                                 return (
                                     <motion.div 
@@ -440,7 +536,10 @@ export default function Storefront() {
                                         <div className="sale-badge">Chegirma -50%</div>
                                         <div 
                                             className="product-image-wrapper"
-                                            onClick={() => prod.image_url && setZoomedImage(prod.image_url)}
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                if (prod.image_url) setActiveLightboxIndex(idx);
+                                            }}
                                             style={{ cursor: 'zoom-in', position: 'relative' }}
                                         >
                                             {prod.image_url ? (
@@ -634,7 +733,15 @@ export default function Storefront() {
                             </div>
                             <div style={{ padding: '2rem', display: 'flex', gap: '2rem', flexDirection: window.innerWidth < 768 ? 'column' : 'row' }}>
                                 <div 
-                                    onClick={() => selectedProduct.image_url && setZoomedImage(selectedProduct.image_url)}
+                                    onClick={() => {
+                                        if (selectedProduct.image_url) {
+                                            const idx = filteredProducts.findIndex(p => p.id === selectedProduct.id);
+                                            if (idx !== -1) {
+                                                setActiveLightboxIndex(idx);
+                                                setSelectedProduct(null);
+                                            }
+                                        }
+                                    }}
                                     style={{ 
                                         width: window.innerWidth < 768 ? '100%' : '260px', 
                                         height: '320px', 
@@ -805,16 +912,21 @@ export default function Storefront() {
                             <button className="btn-primary" style={{ width: '100%' }} onClick={() => setIsSuccessOpen(false)}>Tushunarli</button>
                         </div>
                     </motion.div>
+                )}
             </AnimatePresence>
 
             {/* Lightbox / Fullscreen Image Zoom Modal */}
             <AnimatePresence>
-                {zoomedImage && (
+                {activeLightboxIndex !== null && filteredProducts[activeLightboxIndex] && (
                     <motion.div 
+                        role="dialog"
+                        aria-modal="true"
+                        aria-label="Mahsulot rasmini kattalashtirib ko'rish"
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
                         exit={{ opacity: 0 }}
-                        onClick={() => setZoomedImage(null)}
+                        transition={{ duration: 0.25 }}
+                        onClick={() => setActiveLightboxIndex(null)}
                         style={{
                             position: 'fixed',
                             top: 0,
@@ -826,39 +938,230 @@ export default function Storefront() {
                             alignItems: 'center',
                             justifyContent: 'center',
                             zIndex: 2000,
-                            cursor: 'zoom-out'
+                            cursor: zoomScale > 1 ? 'grab' : 'zoom-out',
+                            overflow: 'hidden',
+                            touchAction: 'none'
                         }}
                     >
+                        {/* Close button */}
                         <button 
-                            onClick={() => setZoomedImage(null)}
+                            onClick={(e) => { e.stopPropagation(); setActiveLightboxIndex(null); }}
+                            aria-label="Yopish"
                             style={{
                                 position: 'absolute',
                                 top: '20px',
                                 right: '20px',
-                                background: 'none',
+                                background: 'rgba(255, 255, 255, 0.1)',
                                 border: 'none',
                                 color: 'white',
-                                fontSize: '3rem',
+                                fontSize: '2.5rem',
+                                width: '50px',
+                                height: '50px',
+                                borderRadius: '50%',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
                                 cursor: 'pointer',
-                                zIndex: 2001
+                                zIndex: 2005,
+                                transition: 'background 0.2s',
+                                outline: 'none'
                             }}
+                            onMouseEnter={(e) => e.target.style.background = 'rgba(255, 255, 255, 0.2)'}
+                            onMouseLeave={(e) => e.target.style.background = 'rgba(255, 255, 255, 0.1)'}
                         >
                             &times;
                         </button>
-                        <motion.img 
-                            initial={{ scale: 0.9 }}
-                            animate={{ scale: 1 }}
-                            exit={{ scale: 0.9 }}
-                            src={zoomedImage} 
-                            alt="Kattalashtirilgan mahsulot" 
+
+                        {/* Navigation: Prev Button */}
+                        {activeLightboxIndex > 0 && (
+                            <button
+                                onClick={(e) => { e.stopPropagation(); handlePrevLightbox(); }}
+                                aria-label="Oldingi mahsulot"
+                                style={{
+                                    position: 'absolute',
+                                    left: '20px',
+                                    background: 'rgba(255, 255, 255, 0.1)',
+                                    border: 'none',
+                                    color: 'white',
+                                    width: '50px',
+                                    height: '50px',
+                                    borderRadius: '50%',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    cursor: 'pointer',
+                                    zIndex: 2002,
+                                    outline: 'none',
+                                    transition: 'background 0.2s'
+                                }}
+                                onMouseEnter={(e) => e.target.style.background = 'rgba(255, 255, 255, 0.2)'}
+                                onMouseLeave={(e) => e.target.style.background = 'rgba(255, 255, 255, 0.1)'}
+                            >
+                                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg>
+                            </button>
+                        )}
+
+                        {/* Navigation: Next Button */}
+                        {activeLightboxIndex < filteredProducts.length - 1 && (
+                            <button
+                                onClick={(e) => { e.stopPropagation(); handleNextLightbox(); }}
+                                aria-label="Keyingi mahsulot"
+                                style={{
+                                    position: 'absolute',
+                                    right: '20px',
+                                    background: 'rgba(255, 255, 255, 0.1)',
+                                    border: 'none',
+                                    color: 'white',
+                                    width: '50px',
+                                    height: '50px',
+                                    borderRadius: '50%',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    cursor: 'pointer',
+                                    zIndex: 2002,
+                                    outline: 'none',
+                                    transition: 'background 0.2s'
+                                }}
+                                onMouseEnter={(e) => e.target.style.background = 'rgba(255, 255, 255, 0.2)'}
+                                onMouseLeave={(e) => e.target.style.background = 'rgba(255, 255, 255, 0.1)'}
+                            >
+                                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
+                            </button>
+                        )}
+
+                        {/* Zoomed Image Container */}
+                        <div
+                            onClick={(e) => e.stopPropagation()}
+                            onWheel={handleWheel}
+                            onMouseDown={handleMouseDown}
+                            onMouseMove={handleMouseMove}
+                            onMouseUp={handleMouseUp}
+                            onMouseLeave={handleMouseUp}
+                            onTouchStart={(e) => {
+                                const now = Date.now();
+                                const doubleTapDelay = 300;
+                                if (e.touches.length === 1 && (now - touchRef.current.lastTap) < doubleTapDelay) {
+                                    setZoomScale(prev => {
+                                        const newScale = prev > 1 ? 1 : 2;
+                                        if (newScale === 1) setPanOffset({ x: 0, y: 0 });
+                                        return newScale;
+                                    });
+                                    touchRef.current.lastTap = 0;
+                                    return;
+                                }
+                                if (e.touches.length === 1) {
+                                    touchRef.current.lastTap = now;
+                                    touchRef.current.startX = e.touches[0].clientX;
+                                    touchRef.current.startY = e.touches[0].clientY;
+                                    if (zoomScale > 1) {
+                                        setIsDragging(true);
+                                        setDragStart({
+                                            x: e.touches[0].clientX - panOffset.x,
+                                            y: e.touches[0].clientY - panOffset.y
+                                        });
+                                    } else {
+                                        touchRef.current.isSwiping = true;
+                                    }
+                                } else if (e.touches.length === 2) {
+                                    touchRef.current.isPinching = true;
+                                    touchRef.current.isSwiping = false;
+                                    setIsDragging(false);
+                                    const dx = e.touches[0].clientX - e.touches[1].clientX;
+                                    const dy = e.touches[0].clientY - e.touches[1].clientY;
+                                    touchRef.current.lastDistance = Math.sqrt(dx * dx + dy * dy);
+                                }
+                            }}
+                            onTouchMove={(e) => {
+                                if (e.touches.length === 2 && touchRef.current.isPinching) {
+                                    const dx = e.touches[0].clientX - e.touches[1].clientX;
+                                    const dy = e.touches[0].clientY - e.touches[1].clientY;
+                                    const dist = Math.sqrt(dx * dx + dy * dy);
+                                    const factor = dist / (touchRef.current.lastDistance || 1);
+                                    touchRef.current.lastDistance = dist;
+                                    setZoomScale(prev => {
+                                        const newScale = Math.max(1, Math.min(5, prev * factor));
+                                        if (newScale === 1) setPanOffset({ x: 0, y: 0 });
+                                        return newScale;
+                                    });
+                                } else if (e.touches.length === 1 && zoomScale > 1 && isDragging) {
+                                    setPanOffset({
+                                        x: e.touches[0].clientX - dragStart.x,
+                                        y: e.touches[0].clientY - dragStart.y
+                                    });
+                                }
+                            }}
+                            onTouchEnd={(e) => {
+                                setIsDragging(false);
+                                touchRef.current.isPinching = false;
+                                if (touchRef.current.isSwiping && e.changedTouches.length === 1) {
+                                    const endX = e.changedTouches[0].clientX;
+                                    const diffX = endX - touchRef.current.startX;
+                                    const threshold = 60;
+                                    if (Math.abs(diffX) > threshold) {
+                                        if (diffX > 0) {
+                                            handlePrevLightbox();
+                                        } else {
+                                            handleNextLightbox();
+                                        }
+                                    }
+                                }
+                                touchRef.current.isSwiping = false;
+                            }}
                             style={{
-                                maxWidth: '95vw',
-                                maxHeight: '90vh',
-                                objectFit: 'contain',
-                                borderRadius: '8px',
-                                boxShadow: '0 10px 40px rgba(0,0,0,0.8)'
-                            }} 
-                        />
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                width: '100%',
+                                height: '100%',
+                                overflow: 'hidden'
+                            }}
+                        >
+                            <motion.img 
+                                initial={{ scale: 0.9, opacity: 0 }}
+                                animate={{ 
+                                    scale: zoomScale, 
+                                    x: panOffset.x, 
+                                    y: panOffset.y,
+                                    opacity: 1
+                                }}
+                                exit={{ scale: 0.9, opacity: 0 }}
+                                transition={{ duration: isDragging ? 0 : 0.25 }}
+                                src={filteredProducts[activeLightboxIndex].image_url} 
+                                alt={filteredProducts[activeLightboxIndex].name} 
+                                style={{
+                                    maxWidth: '95vw',
+                                    maxHeight: '95vh',
+                                    objectFit: 'contain',
+                                    borderRadius: '8px',
+                                    boxShadow: '0 10px 40px rgba(0,0,0,0.8)',
+                                    userSelect: 'none',
+                                    WebkitUserDrag: 'none',
+                                    cursor: zoomScale > 1 ? (isDragging ? 'grabbing' : 'grab') : 'zoom-in'
+                                }} 
+                            />
+                        </div>
+
+                        {/* Bottom-left: Zoom Indicator */}
+                        <div style={{
+                            position: 'absolute',
+                            bottom: '20px',
+                            left: '20px',
+                            background: 'rgba(0, 0, 0, 0.7)',
+                            color: '#ffffff',
+                            padding: '8px 16px',
+                            borderRadius: '20px',
+                            fontSize: '0.85rem',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '6px',
+                            pointerEvents: 'none',
+                            zIndex: 2002,
+                            border: '1px solid rgba(255, 255, 255, 0.1)',
+                            fontFamily: 'sans-serif'
+                        }}>
+                            <span>🔍 Zoom: {zoomScale.toFixed(1)}x</span>
+                        </div>
                     </motion.div>
                 )}
             </AnimatePresence>
