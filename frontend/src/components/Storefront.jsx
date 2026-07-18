@@ -250,7 +250,7 @@ export default function Storefront() {
 
             {/* Announcement bar */}
             <div className="announcement-bar">
-                <span>✨ Tashkent shahri bo'ylab bepul yetkazib berish! 🛍️ 9:00 dan 20:00 gacha xizmatingizdamiz</span>
+                <span>✨ O'zbekiston bo'ylab yetkazib berish mavjud! 🛍️ 09:00 dan 21:00 gacha xizmatingizdamiz</span>
             </div>
 
             {/* Header */}
