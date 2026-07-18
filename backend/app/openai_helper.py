@@ -235,6 +235,8 @@ async def analyze_product_image(image_bytes: bytes, mime_type: str) -> dict:
             "{\n"
             "  \"name\": \"Mahsulotning chiroyli, jozibali nomi o'zbek tilida (masalan: 'Nafis gulli shifon ko'ylak' yoki 'Chiroyli bolalar trikotaj kombinezoni')\",\n"
             "  \"description\": \"Mahsulotning chiroyli tavsifi, matosi, dizayni va uslubini ta'riflovchi o'zbek tilidagi 2-3 ta gap\",\n"
+            "  \"price\": Taxminiy chakana sotish narxi faqat butun son ko'rinishida (masalan: 120000, 140000, 95000. Kiyim turiga qarab munosib narx belgilang, masalan to'plam kiyimlar uchun 140000, ko'ylak uchun 120000, futbolka uchun 75000 so'm, shimlar uchun 95000 so'm, kurtkalar uchun 180000 so'm. Faqat raqam yozing),\n"
+            "  \"sizes\": \"Kiyim uchun mos keladigan bolalar o'lchamlari (masalan agar rasmda yozilgan bo'lsa o'shani oling, aks holda standart mos o'lchamlarni yozing, masalan: '86, 92, 98' yoki '92, 98, 104, 110')\",\n"
             "  \"stock\": 10\n"
             "}\n"
             "Javobda faqat to'g'ri JSON bo'lishi shart, qo'shimcha matn yozmang."
@@ -275,6 +277,10 @@ async def analyze_product_image(image_bytes: bytes, mime_type: str) -> dict:
             data["name"] = "Yangi mahsulot"
         if "description" not in data:
             data["description"] = "Tavsif mavjud emas"
+        if "price" not in data:
+            data["price"] = 120000
+        if "sizes" not in data:
+            data["sizes"] = "92, 98, 104"
         if "stock" not in data:
             data["stock"] = 10
             
@@ -284,6 +290,8 @@ async def analyze_product_image(image_bytes: bytes, mime_type: str) -> dict:
         return {
             "name": "Yangi kiyim-kechak",
             "description": "Rasm tahlilida xatolik yuz berdi, lekin tizim mahsulotni yaratdi.",
+            "price": 120000,
+            "sizes": "92, 98, 104",
             "stock": 10
         }
 

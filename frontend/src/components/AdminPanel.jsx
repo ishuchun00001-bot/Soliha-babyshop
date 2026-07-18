@@ -220,14 +220,23 @@ export default function AdminPanel({ onLogout }) {
     };
 
     const handleDeleteProduct = async (id) => {
-        if (!confirm("Ushbu mahsulotni o'chirishga ishonchingiz komilmi?")) return;
+        if (!confirm("Ushbu mahsulotni butunlay o'chirishga ishonchingiz komilmi?")) return;
         try {
-            // Soft delete by setting is_active to false
+            // Try to delete the record completely (hard delete)
             const { error } = await supabase
                 .from("products")
-                .update({ is_active: false })
+                .delete()
                 .eq("id", id);
-            if (error) throw error;
+                
+            if (error) {
+                // If hard delete fails (e.g., due to orders constraint), perform a soft delete instead
+                console.warn("Hard delete failed (product is ordered), performing soft delete:", error);
+                const { error: softError } = await supabase
+                    .from("products")
+                    .update({ is_active: false })
+                    .eq("id", id);
+                if (softError) throw softError;
+            }
             loadData();
         } catch (err) {
             alert("Mahsulotni o'chirishda xato: " + (err.message || JSON.stringify(err)));
