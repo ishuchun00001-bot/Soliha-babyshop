@@ -440,11 +440,16 @@ export default function Storefront() {
                                         <div className="sale-badge">Chegirma -50%</div>
                                         <div 
                                             className="product-image-wrapper"
-                                            onClick={() => setSelectedProduct(prod)}
-                                            style={{ cursor: 'pointer' }}
+                                            onClick={() => prod.image_url && setZoomedImage(prod.image_url)}
+                                            style={{ cursor: 'zoom-in', position: 'relative' }}
                                         >
                                             {prod.image_url ? (
-                                                <img src={prod.image_url} alt={prod.name} className="product-image" />
+                                                <>
+                                                    <img src={prod.image_url} alt={prod.name} className="product-image" />
+                                                    <div style={{ position: 'absolute', bottom: '10px', right: '10px', background: 'rgba(0,0,0,0.5)', color: 'white', padding: '4px 8px', borderRadius: '4px', fontSize: '0.7rem', display: 'flex', alignItems: 'center', gap: '4px', pointerEvents: 'none', zIndex: 5 }}>
+                                                        🔍 Kattalashtirish
+                                                    </div>
+                                                </>
                                             ) : (
                                                 <div className="product-placeholder">🍼</div>
                                             )}
