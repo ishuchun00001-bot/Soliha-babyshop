@@ -5,6 +5,7 @@ import {
 } from 'lucide-react';
 import { supabase } from '../supabaseClient';
 import { SHOP_INFO } from '../config';
+import FloatingBackground from './FloatingBackground';
 
 export default function Storefront() {
     // State
@@ -341,6 +342,9 @@ export default function Storefront() {
 
     return (
         <div>
+            {/* Animated Luxury Floating Children's Fashion Background */}
+            <FloatingBackground />
+
             {/* Background elements */}
             <div className="bg-glow bg-glow-1"></div>
             <div className="bg-glow bg-glow-2"></div>
