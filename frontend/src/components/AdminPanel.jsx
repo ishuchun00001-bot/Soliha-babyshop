@@ -272,7 +272,7 @@ export default function AdminPanel({ onLogout }) {
             {/* Sidebar */}
             <aside className="sidebar">
                 <div className="logo-container">
-                    <span className="logo-text">Soliha <span className="logo-subtext">Admin</span></span>
+                    <span className="logo-text">Mustafa <span className="logo-subtext">Admin</span></span>
                 </div>
                 <ul className="sidebar-menu">
                     <li>
@@ -394,7 +394,7 @@ export default function AdminPanel({ onLogout }) {
                         </div>
 
                         <div className="admin-card">
-                            <h2 className="admin-card-title">Soliha Boshqaruv Paneliga Xush Kelibsiz!</h2>
+                            <h2 className="admin-card-title">Mustafa Kids Boshqaruv Paneliga Xush Kelibsiz!</h2>
                             <p style={{ color: 'var(--text-muted)', marginBottom: '1.2rem' }}>
                                 Tizim to'liq ravishda **Supabase** bulutli platformasiga integratsiya qilingan.
                             </p>

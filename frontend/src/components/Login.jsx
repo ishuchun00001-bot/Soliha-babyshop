@@ -44,7 +44,7 @@ export default function Login({ onLoginSuccess }) {
                     Admin Panel 🔐
                 </h1>
                 <p style={{ color: 'var(--text-muted)', marginBottom: '2.5rem', fontSize: '0.95rem' }}>
-                    Soliha Baby Shop do'koni boshqaruv tizimi
+                    Mustafa Kids do'koni boshqaruv tizimi
                 </p>
                 
                 <form onSubmit={handleSubmit}>
