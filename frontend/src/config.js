@@ -7,7 +7,7 @@ export const SHOP_INFO = {
     name: "Mustafa Kids",
     logo: "Mustafa Kids",
     phone1: "+998 91 339 26 96",
-    phone2: "",
-    address: "Tashkent shahri",
-    hours: "09:00 dan 20:00 gacha"
+    phone2: "+998 88 921 01 96 | +998 88 797 70 10",
+    address: "Navoiy viloyati, Zarafshon shahri",
+    hours: "09:00 dan 21:00 gacha"
 };

@@ -4,14 +4,14 @@
 
 /* Variables */
 :root {
-    /* Color Palette matching Chado.uz */
-    --primary-navy: #142c73;
-    --primary-navy-dark: #0e1e52;
-    --primary-navy-light: #f0f9ff;
-    --accent-lime: #ddff0d;
-    --accent-lime-dark: #b8d400;
+    /* Color Palette matching Logo (#eae4dd and #151516) */
+    --primary-navy: #151516;
+    --primary-navy-dark: #000000;
+    --primary-navy-light: #f7f4ef;
+    --accent-lime: #eae4dd;
+    --accent-lime-dark: #dcd4cc;
     --danger-coral: #fe4a49;
-    --bg-light: #fafafa;
+    --bg-light: #ffffff;
     --card-bg: #FFFFFF;
     
     /* Backward compatibility mapping to Chado colors */
@@ -20,13 +20,13 @@
     --primary-rose-light: var(--primary-navy-light);
     --accent-terracotta: var(--primary-navy);
     --primary-charcoal: var(--primary-navy);
-    --bg-cream: #ffffff;
+    --bg-cream: #f7f4ef;
     
     /* Functional Colors */
-    --text-dark: #142c73;
-    --text-muted: #6b7c96;
-    --glass-bg: rgba(255, 255, 255, 0.9);
-    --glass-border: rgba(20, 44, 115, 0.15);
+    --text-dark: var(--primary-navy);
+    --text-muted: #78716c;
+    --glass-bg: rgba(255, 255, 255, 0.95);
+    --glass-border: rgba(21, 21, 22, 0.1);
     --success: #10b981;
     --danger: #fe4a49;
     

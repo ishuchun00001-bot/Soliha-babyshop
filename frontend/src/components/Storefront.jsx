@@ -14,6 +14,9 @@ export default function Storefront() {
     
     const [selectedCategory, setSelectedCategory] = useState('all');
     const [searchQuery, setSearchQuery] = useState('');
+    const [selectedAge, setSelectedAge] = useState('all');
+    const [priceSort, setPriceSort] = useState('none');
+    const [maxPrice, setMaxPrice] = useState(500000);
     
     const [cart, setCart] = useState(() => {
         const local = localStorage.getItem("soliha_cart");
@@ -110,8 +113,16 @@ export default function Storefront() {
         const matchesCategory = selectedCategory === 'all' || p.category_id === Number(selectedCategory);
         const matchesSearch = p.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
                               (p.description && p.description.toLowerCase().includes(searchQuery.toLowerCase()));
-        return matchesCategory && matchesSearch;
+        const matchesPrice = p.price <= maxPrice;
+        const matchesAge = selectedAge === 'all' || (p.sizes && p.sizes.toLowerCase().includes(selectedAge.toLowerCase()));
+        return matchesCategory && matchesSearch && matchesPrice && matchesAge;
     });
+
+    if (priceSort === 'asc') {
+        filteredProducts.sort((a, b) => a.price - b.price);
+    } else if (priceSort === 'desc') {
+        filteredProducts.sort((a, b) => b.price - a.price);
+    }
 
     // Cart Actions
     const handleAddToCart = (product, size) => {
@@ -318,6 +329,81 @@ export default function Storefront() {
                         {cat.name}
                     </button>
                 ))}
+            </div>
+            
+            {/* Filter Section (Price, Age/Size, Sorting) */}
+            <div className="filters-sidebar" style={{ 
+                background: 'var(--card-bg)', 
+                padding: '1.25rem 1.5rem', 
+                borderRadius: 'var(--radius-lg)', 
+                border: '1px solid var(--glass-border)',
+                margin: '1.5rem auto 2.5rem auto',
+                maxWidth: '1200px',
+                width: '100%',
+                display: 'flex',
+                flexWrap: 'wrap',
+                gap: '1.5rem',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                boxShadow: 'var(--soft-shadow)'
+            }}>
+                {/* Age Filter */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem', minWidth: '220px', flex: '2' }}>
+                    <label style={{ fontWeight: 700, fontSize: '0.8rem', color: 'var(--text-dark)', letterSpacing: '0.5px' }}>YOSH / RAZMER:</label>
+                    <div style={{ display: 'flex', gap: '0.3rem', flexWrap: 'wrap' }}>
+                        {['all', '0-3 oy', '3-6 oy', '6-9 oy', '9-12 oy', '1-2y', '3-4y', '5-6y', '7-8y'].map(age => (
+                            <button
+                                key={age}
+                                className={`category-tab ${selectedAge === age ? 'active' : ''}`}
+                                style={{ padding: '0.25rem 0.5rem', fontSize: '0.72rem', borderRadius: '4px', height: 'auto', border: '1px solid var(--glass-border)' }}
+                                onClick={() => setSelectedAge(age)}
+                            >
+                                {age === 'all' ? 'Barchasi' : age}
+                            </button>
+                        ))}
+                    </div>
+                </div>
+
+                {/* Price Range Filter */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem', minWidth: '180px', flex: '1' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <label style={{ fontWeight: 700, fontSize: '0.8rem', color: 'var(--text-dark)', letterSpacing: '0.5px' }}>MAKSIMAL NARX:</label>
+                        <span style={{ fontWeight: 700, fontSize: '0.85rem', color: 'var(--primary-navy)' }}>{formatPrice(maxPrice)} so'm</span>
+                    </div>
+                    <input 
+                        type="range" 
+                        min="20000" 
+                        max="500000" 
+                        step="10000"
+                        value={maxPrice}
+                        onChange={(e) => setMaxPrice(Number(e.target.value))}
+                        style={{ accentColor: 'var(--primary-navy)', width: '100%', height: '6px', cursor: 'pointer' }}
+                    />
+                </div>
+
+                {/* Price Sorting */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem', minWidth: '150px', flex: '1' }}>
+                    <label style={{ fontWeight: 700, fontSize: '0.8rem', color: 'var(--text-dark)', letterSpacing: '0.5px' }}>SARALASH (NARX):</label>
+                    <select 
+                        value={priceSort}
+                        onChange={(e) => setPriceSort(e.target.value)}
+                        style={{
+                            padding: '0.5rem',
+                            borderRadius: 'var(--radius-sm)',
+                            border: '1px solid var(--glass-border)',
+                            background: 'var(--card-bg)',
+                            color: 'var(--text-dark)',
+                            fontWeight: 600,
+                            fontSize: '0.8rem',
+                            outline: 'none',
+                            cursor: 'pointer'
+                        }}
+                    >
+                        <option value="none">Saralashsiz</option>
+                        <option value="asc">Arzonlari oldin</option>
+                        <option value="desc">Qimmatlari oldin</option>
+                    </select>
+                </div>
             </div>
 
             {/* Products Grid */}
