@@ -370,7 +370,7 @@ header {
 
 .product-image-wrapper {
     width: 100%;
-    height: 300px;
+    aspect-ratio: 3 / 4;
     background: var(--primary-rose-light);
     position: relative;
     overflow: hidden;
@@ -383,8 +383,8 @@ header {
 .product-image {
     width: 100%;
     height: 100%;
-    object-fit: contain;
-    padding: 1rem;
+    object-fit: cover;
+    padding: 0;
     transition: var(--transition);
 }
 
@@ -1293,16 +1293,16 @@ footer {
     
     .product-image-wrapper {
         height: auto !important;
-        aspect-ratio: 1 / 1 !important;
+        aspect-ratio: 3 / 4 !important;
     }
     
     .product-image {
-        padding: 0.5rem !important;
+        padding: 0 !important;
         width: 100% !important;
         height: 100% !important;
         max-width: 100% !important;
         max-height: 100% !important;
-        object-fit: contain !important;
+        object-fit: cover !important;
     }
     
     .product-info {
