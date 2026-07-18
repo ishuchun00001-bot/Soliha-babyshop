@@ -27,6 +27,7 @@ export default function Storefront() {
     const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
     const [isSuccessOpen, setIsSuccessOpen] = useState(false);
     const [selectedProduct, setSelectedProduct] = useState(null);
+    const [zoomedImage, setZoomedImage] = useState(null);
     
     // Checkout form state
     const [custName, setCustName] = useState('');
@@ -627,9 +628,29 @@ export default function Storefront() {
                                 <button className="close-drawer" onClick={() => setSelectedProduct(null)}>&times;</button>
                             </div>
                             <div style={{ padding: '2rem', display: 'flex', gap: '2rem', flexDirection: window.innerWidth < 768 ? 'column' : 'row' }}>
-                                <div style={{ width: window.innerWidth < 768 ? '100%' : '200px', height: '200px', background: 'var(--primary-navy-light)', borderRadius: 'var(--radius-md)', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', border: '1px solid var(--glass-border)' }}>
+                                <div 
+                                    onClick={() => selectedProduct.image_url && setZoomedImage(selectedProduct.image_url)}
+                                    style={{ 
+                                        width: window.innerWidth < 768 ? '100%' : '260px', 
+                                        height: '320px', 
+                                        background: 'var(--primary-navy-light)', 
+                                        borderRadius: 'var(--radius-md)', 
+                                        display: 'flex', 
+                                        alignItems: 'center', 
+                                        justifyContent: 'center', 
+                                        overflow: 'hidden', 
+                                        border: '1px solid var(--glass-border)',
+                                        cursor: selectedProduct.image_url ? 'zoom-in' : 'default',
+                                        position: 'relative'
+                                    }}
+                                >
                                     {selectedProduct.image_url ? (
-                                        <img src={selectedProduct.image_url} alt={selectedProduct.name} style={{ width: '100%', height: '100%', objectFit: 'contain', padding: '0.5rem' }} />
+                                        <>
+                                            <img src={selectedProduct.image_url} alt={selectedProduct.name} style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
+                                            <div style={{ position: 'absolute', bottom: '10px', right: '10px', background: 'rgba(0,0,0,0.6)', color: 'white', padding: '4px 8px', borderRadius: '4px', fontSize: '0.75rem', display: 'flex', alignItems: 'center', gap: '4px', pointerEvents: 'none' }}>
+                                                🔍 Kattalashtirish
+                                            </div>
+                                        </>
                                     ) : (
                                         <div style={{ fontSize: '3rem' }}>🍼</div>
                                     )}
@@ -778,6 +799,61 @@ export default function Storefront() {
                             </p>
                             <button className="btn-primary" style={{ width: '100%' }} onClick={() => setIsSuccessOpen(false)}>Tushunarli</button>
                         </div>
+                    </motion.div>
+            </AnimatePresence>
+
+            {/* Lightbox / Fullscreen Image Zoom Modal */}
+            <AnimatePresence>
+                {zoomedImage && (
+                    <motion.div 
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        onClick={() => setZoomedImage(null)}
+                        style={{
+                            position: 'fixed',
+                            top: 0,
+                            left: 0,
+                            width: '100vw',
+                            height: '100vh',
+                            backgroundColor: 'rgba(0, 0, 0, 0.95)',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            zIndex: 2000,
+                            cursor: 'zoom-out'
+                        }}
+                    >
+                        <button 
+                            onClick={() => setZoomedImage(null)}
+                            style={{
+                                position: 'absolute',
+                                top: '20px',
+                                right: '20px',
+                                background: 'none',
+                                border: 'none',
+                                color: 'white',
+                                fontSize: '3rem',
+                                cursor: 'pointer',
+                                zIndex: 2001
+                            }}
+                        >
+                            &times;
+                        </button>
+                        <motion.img 
+                            initial={{ scale: 0.9 }}
+                            animate={{ scale: 1 }}
+                            exit={{ scale: 0.9 }}
+                            src={zoomedImage} 
+                            alt="Kattalashtirilgan mahsulot" 
+                            style={{
+                                maxWidth: '95vw',
+                                maxHeight: '90vh',
+                                objectFit: 'contain',
+                                borderRadius: '8px',
+                                boxShadow: '0 10px 40px rgba(0,0,0,0.8)'
+                            }} 
+                        />
                     </motion.div>
                 )}
             </AnimatePresence>
