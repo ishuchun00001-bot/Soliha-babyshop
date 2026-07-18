@@ -1253,3 +1253,108 @@ footer {
         padding: 1.5rem;
     }
 }
+
+/* -------------------------------------------------------------
+   Mobile Optimization Styles
+   ------------------------------------------------------------- */
+@media (max-width: 768px) {
+    header {
+        padding: 0.8rem 1.2rem !important;
+    }
+    
+    .logo-text {
+        font-size: 1.4rem !important;
+    }
+    
+    .search-container {
+        margin-bottom: 1.5rem !important;
+        padding: 0 1rem !important;
+    }
+    
+    .categories-container {
+        justify-content: flex-start !important;
+        padding: 0 1rem 1.5rem 1rem !important;
+        gap: 0.6rem !important;
+    }
+    
+    .category-tab {
+        padding: 0.5rem 1.2rem !important;
+        font-size: 0.85rem !important;
+    }
+    
+    .products-section {
+        padding: 0 1rem 4rem 1rem !important;
+    }
+    
+    .products-grid {
+        grid-template-columns: repeat(2, 1fr) !important;
+        gap: 1rem !important;
+    }
+    
+    .product-image-wrapper {
+        height: auto !important;
+        aspect-ratio: 1 / 1 !important;
+    }
+    
+    .product-image {
+        padding: 0.5rem !important;
+        width: 100% !important;
+        height: 100% !important;
+        max-width: 100% !important;
+        max-height: 100% !important;
+        object-fit: contain !important;
+    }
+    
+    .product-info {
+        padding: 1rem !important;
+    }
+    
+    .product-name {
+        font-size: 1.05rem !important;
+        margin-bottom: 0.4rem !important;
+    }
+    
+    .product-desc {
+        font-size: 0.82rem !important;
+        margin-bottom: 0.8rem !important;
+        -webkit-line-clamp: 2 !important;
+    }
+    
+    .product-meta {
+        flex-direction: column !important;
+        align-items: flex-start !important;
+        gap: 0.4rem !important;
+        margin-bottom: 0.8rem !important;
+    }
+    
+    .product-price {
+        font-size: 1.1rem !important;
+    }
+    
+    .original-price {
+        font-size: 0.85rem !important;
+    }
+    
+    .btn-buy {
+        width: 100% !important;
+        padding: 0.6rem !important;
+        font-size: 0.85rem !important;
+        justify-content: center !important;
+    }
+    
+    .floating-cart {
+        bottom: 1.5rem !important;
+        right: 1.5rem !important;
+        width: 50px !important;
+        height: 50px !important;
+    }
+    
+    /* Hero section font sizing */
+    .hero h1 {
+        font-size: 2.2rem !important;
+    }
+    .hero p {
+        font-size: 1rem !important;
+        padding: 0 1rem !important;
+    }
+}
