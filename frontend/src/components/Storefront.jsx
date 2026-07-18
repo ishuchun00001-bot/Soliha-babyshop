@@ -457,14 +457,35 @@ export default function Storefront() {
                                                 {prod.name}
                                             </h3>
                                             <p className="product-desc">{prod.description || 'Mustafa Kids kiyimi'}</p>
-                                            <div className="product-meta" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%', gap: '0.5rem' }}>
+                                            
+                                            {/* Dedicated Sizes Section */}
+                                            {sizesList.length > 0 && (
+                                                <div className="product-card-sizes" style={{ display: 'flex', gap: '0.35rem', flexWrap: 'wrap', marginBottom: '1.2rem', alignItems: 'center' }}>
+                                                    <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginRight: '2px' }}>O'lcham:</span>
+                                                    {sizesList.map(sz => (
+                                                        <span 
+                                                            key={sz} 
+                                                            style={{ 
+                                                                fontSize: '0.75rem', 
+                                                                background: 'var(--primary-navy-light)', 
+                                                                color: 'var(--primary-navy)', 
+                                                                padding: '0.15rem 0.45rem', 
+                                                                borderRadius: '4px', 
+                                                                fontWeight: 600,
+                                                                border: '1px solid var(--glass-border)'
+                                                            }}
+                                                        >
+                                                            {sz}
+                                                        </span>
+                                                    ))}
+                                                </div>
+                                            )}
+
+                                            <div className="product-meta" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%', gap: '0.5rem', marginBottom: '1.2rem' }}>
                                                 <div className="price-container">
                                                     <span className="original-price">{formatPrice(prod.price * 2)} so'm</span>
                                                     <span className="product-price">{formatPrice(prod.price)} so'm</span>
                                                 </div>
-                                                {sizesList.length > 0 && (
-                                                    <span className="product-sizes-badge">📏 {sizesList[0]}+</span>
-                                                )}
                                             </div>
                                             <button 
                                                 className="add-to-cart-btn"
@@ -472,7 +493,7 @@ export default function Storefront() {
                                                     if (sizesList.length > 1) {
                                                         setSelectedProduct(prod);
                                                     } else {
-                                                        handleAddToCart(prod, sizesList[0]);
+                                                        handleAddToCart(prod, sizesList[0] || null);
                                                     }
                                                 }}
                                             >
