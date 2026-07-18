@@ -45,87 +45,7 @@ export default function Storefront() {
         lastTap: 0
     });
 
-    const handleNextLightbox = () => {
-        if (activeLightboxIndex !== null && activeLightboxIndex < filteredProducts.length - 1) {
-            setActiveLightboxIndex(activeLightboxIndex + 1);
-        }
-    };
-    
-    const handlePrevLightbox = () => {
-        if (activeLightboxIndex !== null && activeLightboxIndex > 0) {
-            setActiveLightboxIndex(activeLightboxIndex - 1);
-        }
-    };
 
-    const handleWheel = (e) => {
-        const intensity = 0.15;
-        const delta = -e.deltaY;
-        const change = delta > 0 ? intensity : -intensity;
-        setZoomScale(prev => {
-            const nextScale = Math.max(1, Math.min(5, prev + change));
-            if (nextScale === 1) setPanOffset({ x: 0, y: 0 });
-            return nextScale;
-        });
-    };
-
-    const handleMouseDown = (e) => {
-        if (zoomScale <= 1) return;
-        setIsDragging(true);
-        setDragStart({ x: e.clientX - panOffset.x, y: e.clientY - panOffset.y });
-    };
-
-    const handleMouseMove = (e) => {
-        if (!isDragging) return;
-        setPanOffset({
-            x: e.clientX - dragStart.x,
-            y: e.clientY - dragStart.y
-        });
-    };
-
-    const handleMouseUp = () => {
-        setIsDragging(false);
-    };
-
-    // Reset zoom and pan when lightbox product changes
-    useEffect(() => {
-        setZoomScale(1);
-        setPanOffset({ x: 0, y: 0 });
-        setIsDragging(false);
-    }, [activeLightboxIndex]);
-
-    // Handle Keyboard navigation (ArrowLeft, ArrowRight, Escape)
-    useEffect(() => {
-        const handleKeyDown = (e) => {
-            if (activeLightboxIndex === null) return;
-            if (e.key === 'Escape') {
-                setActiveLightboxIndex(null);
-            } else if (e.key === 'ArrowRight') {
-                handleNextLightbox();
-            } else if (e.key === 'ArrowLeft') {
-                handlePrevLightbox();
-            }
-        };
-        window.addEventListener('keydown', handleKeyDown);
-        return () => window.removeEventListener('keydown', handleKeyDown);
-    }, [activeLightboxIndex, filteredProducts]);
-
-    // Preload next and previous images
-    useEffect(() => {
-        if (activeLightboxIndex !== null) {
-            const preload = (url) => {
-                if (!url) return;
-                const img = new Image();
-                img.src = url;
-            };
-            if (activeLightboxIndex > 0) {
-                preload(filteredProducts[activeLightboxIndex - 1]?.image_url);
-            }
-            if (activeLightboxIndex < filteredProducts.length - 1) {
-                preload(filteredProducts[activeLightboxIndex + 1]?.image_url);
-            }
-        }
-    }, [activeLightboxIndex, filteredProducts]);
-    
     // Checkout form state
     const [custName, setCustName] = useState('');
     const [custPhone, setCustPhone] = useState('+998');
@@ -221,6 +141,87 @@ export default function Storefront() {
     } else if (priceSort === 'desc') {
         filteredProducts.sort((a, b) => b.price - a.price);
     }
+
+    const handleNextLightbox = () => {
+        if (activeLightboxIndex !== null && activeLightboxIndex < filteredProducts.length - 1) {
+            setActiveLightboxIndex(activeLightboxIndex + 1);
+        }
+    };
+    
+    const handlePrevLightbox = () => {
+        if (activeLightboxIndex !== null && activeLightboxIndex > 0) {
+            setActiveLightboxIndex(activeLightboxIndex - 1);
+        }
+    };
+
+    const handleWheel = (e) => {
+        const intensity = 0.15;
+        const delta = -e.deltaY;
+        const change = delta > 0 ? intensity : -intensity;
+        setZoomScale(prev => {
+            const nextScale = Math.max(1, Math.min(5, prev + change));
+            if (nextScale === 1) setPanOffset({ x: 0, y: 0 });
+            return nextScale;
+        });
+    };
+
+    const handleMouseDown = (e) => {
+        if (zoomScale <= 1) return;
+        setIsDragging(true);
+        setDragStart({ x: e.clientX - panOffset.x, y: e.clientY - panOffset.y });
+    };
+
+    const handleMouseMove = (e) => {
+        if (!isDragging) return;
+        setPanOffset({
+            x: e.clientX - dragStart.x,
+            y: e.clientY - dragStart.y
+        });
+    };
+
+    const handleMouseUp = () => {
+        setIsDragging(false);
+    };
+
+    // Reset zoom and pan when lightbox product changes
+    useEffect(() => {
+        setZoomScale(1);
+        setPanOffset({ x: 0, y: 0 });
+        setIsDragging(false);
+    }, [activeLightboxIndex]);
+
+    // Handle Keyboard navigation (ArrowLeft, ArrowRight, Escape)
+    useEffect(() => {
+        const handleKeyDown = (e) => {
+            if (activeLightboxIndex === null) return;
+            if (e.key === 'Escape') {
+                setActiveLightboxIndex(null);
+            } else if (e.key === 'ArrowRight') {
+                handleNextLightbox();
+            } else if (e.key === 'ArrowLeft') {
+                handlePrevLightbox();
+            }
+        };
+        window.addEventListener('keydown', handleKeyDown);
+        return () => window.removeEventListener('keydown', handleKeyDown);
+    }, [activeLightboxIndex, filteredProducts]);
+
+    // Preload next and previous images
+    useEffect(() => {
+        if (activeLightboxIndex !== null) {
+            const preload = (url) => {
+                if (!url) return;
+                const img = new Image();
+                img.src = url;
+            };
+            if (activeLightboxIndex > 0) {
+                preload(filteredProducts[activeLightboxIndex - 1]?.image_url);
+            }
+            if (activeLightboxIndex < filteredProducts.length - 1) {
+                preload(filteredProducts[activeLightboxIndex + 1]?.image_url);
+            }
+        }
+    }, [activeLightboxIndex, filteredProducts]);
 
     // Cart Actions
     const handleAddToCart = (product, size) => {
